@@ -1,11 +1,28 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import GenerateExamButton from "@/components/GenerateExamButton";
 
+const MODE_LABELS: Record<string, string> = {
+  full: "Complete Mock Exam",
+  reading: "Reading",
+  listening: "Listening",
+  writing: "Writing",
+  grammar: "Grammar",
+};
+
 export default async function ExamsPage() {
+  const user = await requireUser();
+
   const exams = await prisma.exam.findMany({
+    where: {
+      OR: [{ attempts: { none: {} } }, { attempts: { some: { userId: user.id } } }],
+    },
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { parts: true, attempts: true } } },
+    include: {
+      _count: { select: { parts: true } },
+      attempts: { where: { userId: user.id }, orderBy: { startedAt: "desc" }, take: 1 },
+    },
   });
 
   return (
@@ -17,7 +34,7 @@ export default async function ExamsPage() {
             Generate a new Telc B1 mock exam or resume one below.
           </p>
         </div>
-        <GenerateExamButton />
+        <GenerateExamButton label="Generate full mock exam" />
       </div>
 
       {exams.length === 0 ? (
@@ -26,26 +43,32 @@ export default async function ExamsPage() {
         </p>
       ) : (
         <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
-          {exams.map((exam) => (
-            <li key={exam.id} className="flex items-center justify-between px-4 py-3">
-              <div>
-                <Link href={`/exams/${exam.id}`} className="font-medium hover:underline">
-                  {exam.title}
-                </Link>
-                <div className="text-sm text-neutral-500">
-                  Level {exam.level} · {exam._count.parts} parts ·{" "}
-                  {exam._count.attempts} attempt
-                  {exam._count.attempts === 1 ? "" : "s"}
+          {exams.map((exam) => {
+            const attempt = exam.attempts[0];
+            return (
+              <li key={exam.id} className="flex items-center justify-between px-4 py-3">
+                <div>
+                  <Link href={`/exams/${exam.id}`} className="font-medium hover:underline">
+                    {exam.title}
+                  </Link>
+                  <div className="text-sm text-neutral-500">
+                    {MODE_LABELS[exam.examMode] ?? exam.examMode} · {exam._count.parts} parts
+                    {attempt?.submittedAt ? ` · scored ${Math.round(attempt.score ?? 0)}%` : attempt ? " · in progress" : " · not started"}
+                  </div>
                 </div>
-              </div>
-              <Link
-                href={`/exams/${exam.id}`}
-                className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
-              >
-                Open
-              </Link>
-            </li>
-          ))}
+                <Link
+                  href={
+                    attempt?.submittedAt
+                      ? `/exams/${exam.id}/results/${attempt.id}`
+                      : `/exams/${exam.id}`
+                  }
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
+                >
+                  {attempt?.submittedAt ? "View results" : "Open"}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

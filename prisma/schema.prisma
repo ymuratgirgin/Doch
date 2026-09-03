@@ -10,23 +10,96 @@ datasource db {
   provider = "sqlite"
 }
 
+// --- Users / auth (name-only, no password — placeholder for real auth) ----
+
+model User {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  examDate  DateTime? // the learner's booked telc B1 exam date, if any
+  createdAt DateTime  @default(now())
+
+  attempts         Attempt[]
+  activitySessions ActivitySession[]
+  vocabProgress    UserVocabProgress[]
+  personalVocab    PersonalVocabWord[]
+}
+
+// A block of continuous time-on-site, extended by heartbeat pings.
+model ActivitySession {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 // --- Vocabulary -------------------------------------------------------
 
 model VocabWord {
-  id         String   @id @default(cuid())
-  word       String
-  wordType   String? // noun / verb / adjective / etc.
-  article    String? // der/die/das for nouns
-  translation String?
+  id              String   @id @default(cuid())
+  word            String
+  wordType        String? // noun / verb / adjective / etc.
+  article         String? // der/die/das for nouns
+  translation     String?
   exampleSentence String?
-  level      String   @default("B1") // A1..C1
-  source     String? // "telc" | "goethe" | ...
-  topic      String? // thematic grouping, e.g. "Arbeit", "Reisen"
-  createdAt  DateTime @default(now())
+  level           String   @default("B1") // A1..C1
+  source          String? // "telc" | "goethe" | ...
+  topic           String? // thematic grouping, e.g. "Arbeit", "Reisen"
+  createdAt       DateTime @default(now())
+
+  progress UserVocabProgress[]
 
   @@unique([word, wordType, level])
   @@index([level])
   @@index([topic])
+}
+
+// Per-user spaced-repetition state for one vocab word (simple Leitner).
+// Points at exactly one of VocabWord (shared B1 bank) or PersonalVocabWord
+// (words this user has actually used in their own writing answers).
+model UserVocabProgress {
+  id                  String             @id @default(cuid())
+  userId              String
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabWordId         String?
+  vocabWord           VocabWord?         @relation(fields: [vocabWordId], references: [id], onDelete: Cascade)
+  personalVocabWordId String?
+  personalVocabWord   PersonalVocabWord? @relation(fields: [personalVocabWordId], references: [id], onDelete: Cascade)
+  status              String             @default("new") // "new" | "learning" | "known"
+  boxLevel            Int                @default(0) // Leitner box, higher = longer interval
+  correctStreak       Int                @default(0)
+  lastReviewedAt      DateTime?
+  nextReviewAt        DateTime           @default(now())
+
+  @@unique([userId, vocabWordId])
+  @@unique([userId, personalVocabWordId])
+  @@index([userId, nextReviewAt])
+}
+
+// A word this user has actually used in one of their own writing answers.
+// Built up session by session from writing-task evaluation, and used
+// (alongside the shared VocabWord bank) as a flashcard source.
+model PersonalVocabWord {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word            String
+  wordType        String?
+  article         String?
+  translation     String?
+  exampleSentence String? // drawn from (or corrected from) the learner's own usage
+  usageCorrect    Boolean  @default(true) // was this word used correctly the most recent time?
+  usageNote       String? // brief correction/explanation when usage was off
+  timesUsed       Int      @default(1) // also doubles as an "appeared in my exams" frequency signal
+  addedManually   Boolean  @default(false) // added via the flashcards "add word" form, not from writing
+  firstSeenAt     DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+
+  progress UserVocabProgress[]
+
+  @@unique([userId, word, wordType])
 }
 
 // --- Exams --------------------------------------------------------------
@@ -43,20 +116,23 @@ model Exam {
   id          String   @id @default(cuid())
   title       String
   level       String   @default("B1")
+  examMode    String   @default("full") // "full" | "reading" | "listening" | "writing" | "grammar"
   createdAt   DateTime @default(now())
   generatedBy String   @default("llm") // "llm" | "template"
   promptSpec  String? // snapshot of the spec/prompt used to generate this exam
+  focusAreas  String? // JSON array of weak-area tags this exam was targeted at
 
   parts    ExamPart[]
   attempts Attempt[]
 }
 
 model ExamPart {
-  id       String       @id @default(cuid())
-  examId   String
-  exam     Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
-  type     ExamPartType
-  order    Int
+  id           String       @id @default(cuid())
+  examId       String
+  exam         Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  type         ExamPartType
+  teilLabel    String? // e.g. "Leseverstehen Teil 1" — used for point-table lookup
+  order        Int
   instructions String?
   passageText  String? // reading passage / listening transcript
 
@@ -66,14 +142,16 @@ model ExamPart {
 }
 
 model Question {
-  id         String   @id @default(cuid())
-  examPartId String
-  examPart   ExamPart @relation(fields: [examPartId], references: [id], onDelete: Cascade)
-  order      Int
-  prompt     String
-  questionType String // "multiple_choice" | "gap_fill" | "free_text" | "matching"
-  options    String? // JSON-encoded array of choices, when applicable
+  id            String   @id @default(cuid())
+  examPartId    String
+  examPart      ExamPart @relation(fields: [examPartId], references: [id], onDelete: Cascade)
+  order         Int
+  prompt        String
+  questionType  String // "multiple_choice" | "gap_fill" | "free_text" | "matching" | "true_false"
+  options       String? // JSON-encoded array of choices, when applicable
   correctAnswer String? // JSON-encoded correct answer(s) for auto-graded types
+  maxPoints     Float    @default(1) // per the telc point table (deterministic, not LLM-set)
+  grammarTopic  String? // e.g. "Perfekt vs. Präteritum" — set at generation for grammar-bearing items
 
   answers Answer[]
 
@@ -83,29 +161,35 @@ model Question {
 // --- Attempts / grading ---------------------------------------------------
 
 model Attempt {
-  id        String   @id @default(cuid())
-  examId    String
-  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  startedAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  examId      String
+  exam        Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt   DateTime  @default(now())
   submittedAt DateTime?
-  score     Float? // overall percentage score once graded
-  feedback  String? // LLM-generated overall feedback summary
+  score       Float? // overall percentage score once graded
+  feedback    String? // LLM-generated overall feedback summary
 
   answers Answer[]
 
   @@index([examId])
+  @@index([userId])
 }
 
 model Answer {
-  id          String   @id @default(cuid())
-  attemptId   String
-  attempt     Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId  String
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  responseText String?
-  isCorrect   Boolean?
-  scoreAwarded Float?
-  feedback    String? // per-answer LLM feedback (esp. for free_text/writing)
+  id                String   @id @default(cuid())
+  attemptId         String
+  attempt           Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId        String
+  question          Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  responseText      String?
+  isCorrect         Boolean?
+  scoreAwarded      Float? // points actually awarded, out of question.maxPoints
+  feedback          String? // short per-answer LLM feedback
+  grammarTopic      String? // normalized tag for aggregating weak areas, e.g. "Dativpräpositionen"
+  grammarExplanation String? // grammar rule explanation + 2-3 examples, for the mistake-review page
+  criteriaJson      String? // writing only: {"aufgabenbewaeltigung": {"grade":"B","points":3}, ...}
 
   @@unique([attemptId, questionId])
 }
