@@ -8,10 +8,12 @@ export default function GenerateExamTile({
   mode,
   title,
   description,
+  recommended,
 }: {
   mode: ExamMode;
   title: string;
   description: string;
+  recommended?: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -39,8 +41,17 @@ export default function GenerateExamTile({
     <button
       onClick={handleClick}
       disabled={loading}
-      className="flex flex-col items-start gap-1 rounded-lg border border-neutral-200 bg-white p-4 text-left transition hover:border-neutral-400 hover:shadow-sm disabled:opacity-60"
+      className={`relative flex flex-col items-start gap-1 rounded-lg border bg-white p-4 text-left transition hover:shadow-sm disabled:opacity-60 ${
+        recommended
+          ? "border-blue-300 ring-1 ring-blue-200 hover:border-blue-400"
+          : "border-neutral-200 hover:border-neutral-400"
+      }`}
     >
+      {recommended && (
+        <span className="absolute -top-2 right-3 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-medium text-white">
+          Recommended today
+        </span>
+      )}
       <span className="font-medium">{loading ? "Generating…" : title}</span>
       <span className="text-sm text-neutral-500">{description}</span>
       {error && <span className="text-xs text-red-600">{error}</span>}

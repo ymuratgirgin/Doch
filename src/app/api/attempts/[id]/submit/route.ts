@@ -7,9 +7,12 @@ import { recordVocabUsage } from "@/lib/personalVocab";
 import {
   MISTAKE_EXPLANATION_INSTRUCTIONS,
   MistakeExplanation,
+  SPEAKING_EVALUATION_INSTRUCTIONS,
+  SpeakingEvaluation,
   WRITING_EVALUATION_INSTRUCTIONS,
   WritingEvaluation,
   extractJson,
+  scoreSpeaking,
   scoreWriting,
 } from "@/lib/examSchema";
 
@@ -58,6 +61,9 @@ export async function POST(
 
   const questionsById = new Map(
     attempt.exam.parts.flatMap((p) => p.questions).map((q) => [q.id, q])
+  );
+  const partTypeByQuestionId = new Map(
+    attempt.exam.parts.flatMap((p) => p.questions.map((q) => [q.id, p.type] as const))
   );
 
   type Graded = {
@@ -136,8 +142,8 @@ export async function POST(
     }
   }
 
-  // Writing (and any other free-text) answers: rubric grading + vocab
-  // extraction into the learner's personal vocabulary bank.
+  // Writing and speaking (solo-adapted) answers: rubric grading. Writing
+  // also extracts vocabulary into the learner's personal vocab bank.
   for (const fa of freeTextAnswers) {
     if (!process.env.ANTHROPIC_API_KEY) {
       graded.push({
@@ -149,6 +155,47 @@ export async function POST(
         grammarTopic: null,
         grammarExplanation: null,
         criteriaJson: null,
+      });
+      continue;
+    }
+
+    const isSpeaking = partTypeByQuestionId.get(fa.questionId) === "SPEAKING";
+
+    if (isSpeaking) {
+      const result = await callModel(
+        ANSWER_EVALUATION_PROMPT,
+        [
+          "Grade this solo-adapted speaking answer (from a speech-to-text transcript) against the task:",
+          `Task: ${fa.prompt}`,
+          `Maximum points for this Teil: ${fa.maxPoints} (split roughly evenly across the three criteria — do not include a pronunciation criterion).`,
+          `Learner's transcript: ${fa.responseText}`,
+          SPEAKING_EVALUATION_INSTRUCTIONS,
+        ].join("\n\n"),
+        3000
+      );
+      const evaluation = result as SpeakingEvaluation | null;
+      if (!evaluation) {
+        graded.push({
+          questionId: fa.questionId,
+          responseText: fa.responseText,
+          isCorrect: null,
+          scoreAwarded: null,
+          feedback: "Automatic grading failed for this answer — please retry.",
+          grammarTopic: null,
+          grammarExplanation: null,
+          criteriaJson: null,
+        });
+        continue;
+      }
+      graded.push({
+        questionId: fa.questionId,
+        responseText: fa.responseText,
+        isCorrect: null,
+        scoreAwarded: scoreSpeaking(evaluation),
+        feedback: evaluation.overallFeedback,
+        grammarTopic: null,
+        grammarExplanation: null,
+        criteriaJson: JSON.stringify(evaluation.criteria),
       });
       continue;
     }

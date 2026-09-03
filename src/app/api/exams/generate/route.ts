@@ -9,11 +9,10 @@ import {
   GeneratedPart,
   GeneratedSectionResponse,
   SECTION_GROUPS,
-  TEIL_POINTS,
-  WRITING_MAX_POINTS,
-  WRITING_TEIL_LABEL,
+  TIME_BUDGET_MINUTES,
   ExamMode,
   extractJson,
+  getTeilMaxPoints,
   groupsForMode,
 } from "@/lib/examSchema";
 
@@ -23,14 +22,32 @@ const MODE_TITLES: Record<ExamMode, string> = {
   listening: "Telc B1 – Hörverstehen Übung",
   writing: "Telc B1 – Schriftlicher Ausdruck Übung",
   grammar: "Telc B1 – Sprachbausteine Übung",
+  speaking: "Telc B1 – Mündlicher Ausdruck Übung (solo)",
 };
+
+const SPEAKING_ADAPTATION_NOTE = `
+This is a SOLO practice adaptation of the paired oral exam in §3.8 — the
+learner has no partner, so adapt each Teil to a monologue:
+- Teil 1 (Einander kennenlernen): give 4-6 prompts/questions an examiner
+  would ask (Name, Wohnort, Familie, Beruf/Studium, Sprachen, Hobbys) and
+  ask the learner to introduce themselves answering all of them.
+- Teil 2 (Über ein Thema sprechen): give ONE topic and ONE card — a
+  fictional person's 40-60 word quoted opinion. Ask the learner to report
+  the opinion, then give their own view and experience.
+- Teil 3 (Gemeinsam etwas planen): give the planning scenario and
+  checklist (Wann? Wo? Essen/Getränke? Wer macht was? Wer bezahlt?). Ask
+  the learner to propose a complete plan addressing every checklist point,
+  as if explaining it to a partner who isn't present.
+Each Teil is ONE "free_text" question whose prompt contains the full
+task (cards/checklist included). Set "type": "SPEAKING".
+`;
 
 async function generateSection(
   groupKey: keyof typeof SECTION_GROUPS,
   context: { weakAreasText: string; vocabText: string }
 ): Promise<GeneratedPart[]> {
   const group = SECTION_GROUPS[groupKey];
-  const maxTokens = groupKey === "writing" ? 3000 : 8000;
+  const maxTokens = groupKey === "writing" || groupKey === "speaking" ? 3000 : 8000;
 
   const userMessage = [
     "--- SPECIFICATION ---",
@@ -38,10 +55,13 @@ async function generateSection(
     "--- TASK ---",
     `Generate ONLY this section of the exam: ${group.label}.`,
     `Produce exactly these Teil(e), each as one part in the "parts" array, in this order: ${group.teils.join(", ")}.`,
+    groupKey === "speaking" ? SPEAKING_ADAPTATION_NOTE : "",
     context.weakAreasText,
     context.vocabText,
     EXAM_JSON_INSTRUCTIONS,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const response = await anthropic.messages.create({
     model: EXAM_GENERATION_MODEL,
@@ -76,9 +96,14 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const mode: ExamMode = ["full", "reading", "listening", "writing", "grammar"].includes(
-    body.mode
-  )
+  const mode: ExamMode = [
+    "full",
+    "reading",
+    "listening",
+    "writing",
+    "grammar",
+    "speaking",
+  ].includes(body.mode)
     ? body.mode
     : "full";
 
@@ -116,13 +141,13 @@ export async function POST(req: NextRequest) {
     data: {
       title: MODE_TITLES[mode],
       examMode: mode,
+      timeBudgetMinutes: TIME_BUDGET_MINUTES[mode],
       generatedBy: "llm",
       promptSpec: EXAM_GENERATION_PROMPT,
       focusAreas: JSON.stringify(weakAreas.map((w) => w.grammarTopic)),
       parts: {
         create: allParts.map((part, partIndex) => {
-          const isWriting = part.teilLabel === WRITING_TEIL_LABEL;
-          const teilTotal = isWriting ? WRITING_MAX_POINTS : TEIL_POINTS[part.teilLabel];
+          const teilTotal = getTeilMaxPoints(part.teilLabel);
           const perItem =
             teilTotal && part.questions.length > 0 ? teilTotal / part.questions.length : 1;
 

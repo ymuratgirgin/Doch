@@ -12,8 +12,15 @@ export async function POST(req: NextRequest) {
   if (!examId) {
     return NextResponse.json({ error: "examId is required" }, { status: 400 });
   }
-  const attempt = await prisma.attempt.create({
-    data: { examId, userId: user.id },
+
+  // Reuse an in-progress attempt for this exam so a page reload doesn't
+  // restart the countdown timer or orphan an attempt.
+  const existing = await prisma.attempt.findFirst({
+    where: { examId, userId: user.id, submittedAt: null },
+    orderBy: { startedAt: "desc" },
   });
-  return NextResponse.json({ attemptId: attempt.id });
+  const attempt =
+    existing ?? (await prisma.attempt.create({ data: { examId, userId: user.id } }));
+
+  return NextResponse.json({ attemptId: attempt.id, startedAt: attempt.startedAt });
 }

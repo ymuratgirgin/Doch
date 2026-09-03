@@ -20,8 +20,10 @@ learner's vocabulary and progress over time.
   via Claude, in resumable batches.
 - **Auth is intentionally minimal.** Login is name-only, no password —
   fine for a small group of trusted testers, not for a public deployment.
-- **Speaking (mündlicher Ausdruck)** isn't implemented — it's a paired
-  oral exam that doesn't fit a solo practice app well; left out for now.
+- **Speaking (mündlicher Ausdruck)** is a solo-adapted, text/voice-transcript
+  practice mode — the real exam is paired, so pronunciation isn't scored
+  (browser speech-to-text only gives us a transcript, and Claude's API has
+  no audio input), only vocabulary/task-fulfillment/grammar.
 
 ## Getting started
 
@@ -67,6 +69,19 @@ Open [http://localhost:3000](http://localhost:3000) and log in with any name.
 - **Listening** reads the generated script aloud in-browser via
   `SpeechSynthesis` (`src/components/ListeningPlayer.tsx`), respecting the
   spec's once/twice playback rule per Teil.
+- **Speaking** (`mode: "speaking"`) solo-adapts the paired oral exam's three
+  Teile into monologue prompts, transcribed via the browser's
+  `SpeechRecognition` API (`src/components/SpeakingRecorder.tsx`, with a
+  type-instead fallback) and graded on 3 of the official 4 criteria
+  (pronunciation excluded — can't be judged from text).
+- **Timed practice.** Every exam gets a time budget (the real 90/30/30
+  written timing for full mocks, a sensible slice for single-skill
+  practice); the Attempt is created when the learner starts, not when they
+  submit, so the countdown survives a page reload and auto-submits at zero.
+- **Progress extras**: a Duolingo-style daily streak (`src/lib/streak.ts`),
+  a per-skill score trend chart, and a daily practice recommendation
+  (`src/lib/recommendation.ts`) that targets the weakest recent skill, or
+  a full mock once the exam date is within two weeks.
 
 ## Project layout
 

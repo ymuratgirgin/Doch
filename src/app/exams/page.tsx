@@ -9,6 +9,7 @@ const MODE_LABELS: Record<string, string> = {
   listening: "Listening",
   writing: "Writing",
   grammar: "Grammar",
+  speaking: "Speaking",
 };
 
 export default async function ExamsPage() {

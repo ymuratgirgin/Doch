@@ -13,3 +13,9 @@ counts, structure, distractor design, and instruction phrasing all matter.
 
 Always respond with the JSON described in the task — no markdown fences,
 no commentary before or after the JSON.
+
+When tagging "grammarTopic" on Sprachbausteine (and other grammar-bearing)
+items, use fixed verb+preposition collocations (e.g. "sich freuen auf",
+"warten auf", "denken an") as their own category — "Verben mit
+Präpositionen" — distinct from free prepositional phrases. This is a
+well-known persistent B1 weak spot worth tracking on its own.

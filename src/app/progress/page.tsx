@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { computePassEstimate } from "@/lib/passEstimate";
+import { computeStreak } from "@/lib/streak";
 import ExamCountdown from "@/components/ExamCountdown";
+import ScoreTrendChart from "@/components/ScoreTrendChart";
 
 const MODE_LABELS: Record<string, string> = {
   full: "Complete Mock Exams",
@@ -9,12 +11,20 @@ const MODE_LABELS: Record<string, string> = {
   listening: "Listening",
   writing: "Writing",
   grammar: "Grammar",
+  speaking: "Speaking",
 };
+
+const TREND_MODES: { mode: string; label: string }[] = [
+  { mode: "reading", label: "Reading" },
+  { mode: "listening", label: "Listening" },
+  { mode: "writing", label: "Writing" },
+  { mode: "grammar", label: "Grammar" },
+];
 
 export default async function ProgressPage() {
   const user = await requireUser();
 
-  const [sessions, attempts, vocabCounts, passEstimate] = await Promise.all([
+  const [sessions, attempts, vocabCounts, passEstimate, streak, trendData] = await Promise.all([
     prisma.activitySession.findMany({ where: { userId: user.id } }),
     prisma.attempt.findMany({
       where: { userId: user.id, submittedAt: { not: null } },
@@ -26,6 +36,18 @@ export default async function ProgressPage() {
       _count: true,
     }),
     computePassEstimate(user.id),
+    computeStreak(user.id),
+    Promise.all(
+      TREND_MODES.map(async ({ mode, label }) => {
+        const recent = await prisma.attempt.findMany({
+          where: { userId: user.id, exam: { examMode: mode }, submittedAt: { not: null } },
+          orderBy: { submittedAt: "desc" },
+          take: 8,
+          select: { score: true },
+        });
+        return { mode, label, scores: recent.reverse().map((a) => a.score ?? 0) };
+      })
+    ),
   ]);
 
   const totalMinutes = sessions.reduce(
@@ -45,9 +67,16 @@ export default async function ProgressPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Your progress</h1>
-        <p className="mt-1 text-neutral-600">{user.name}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Your progress</h1>
+          <p className="mt-1 text-neutral-600">{user.name}</p>
+        </div>
+        {streak > 0 && (
+          <div className="rounded-md border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-800">
+            🔥 {streak} day{streak === 1 ? "" : "s"} streak
+          </div>
+        )}
       </div>
 
       <ExamCountdown examDate={user.examDate?.toISOString() ?? null} />
@@ -76,6 +105,11 @@ export default async function ProgressPage() {
         <StatCard label="Time on site" value={formatMinutes(totalMinutes)} />
         <StatCard label="Exams completed" value={String(attempts.length)} />
         <StatCard label="Words known" value={`${knownCount} / ${totalTracked}`} />
+      </div>
+
+      <div>
+        <h2 className="mb-2 font-medium">Score trend</h2>
+        <ScoreTrendChart data={trendData} />
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4">

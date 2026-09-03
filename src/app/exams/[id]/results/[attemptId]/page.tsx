@@ -3,13 +3,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { computePassEstimate } from "@/lib/passEstimate";
-import type { WritingEvaluation } from "@/lib/examSchema";
-
 const CRITERION_LABELS: Record<string, string> = {
   aufgabenbewaeltigung: "Aufgabenbewältigung",
   kommunikativeGestaltung: "Kommunikative Gestaltung",
   formaleRichtigkeit: "Formale Richtigkeit",
+  ausdrucksfaehigkeit: "Ausdrucksfähigkeit",
 };
+
+type Criterion = { grade?: string; points?: number; explanation: string };
 
 export default async function ResultsPage({
   params,
@@ -72,7 +73,7 @@ export default async function ResultsPage({
           <h2 className="text-lg font-semibold">{part.teilLabel ?? part.type}</h2>
           {part.questions.map((q, i) => {
             const answer = answersByQuestionId.get(q.id);
-            const criteria: WritingEvaluation["criteria"] | null = answer?.criteriaJson
+            const criteria: Record<string, Criterion> | null = answer?.criteriaJson
               ? JSON.parse(answer.criteriaJson)
               : null;
 
@@ -103,7 +104,7 @@ export default async function ResultsPage({
                     {Object.entries(criteria).map(([key, c]) => (
                       <p key={key}>
                         <span className="font-medium">{CRITERION_LABELS[key] ?? key}:</span>{" "}
-                        {c.grade} — {c.explanation}
+                        {c.grade ?? `${c.points} pts`} — {c.explanation}
                       </p>
                     ))}
                   </div>

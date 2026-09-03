@@ -39,9 +39,43 @@ export const TEIL_POINTS: Record<string, number> = {
 export const WRITING_TEIL_LABEL = "Schriftlicher Ausdruck";
 export const WRITING_MAX_POINTS = 45;
 
+// Solo-adapted Mündlicher Ausdruck (spec §3.8 is a paired oral exam; we
+// adapt each Teil to a monologue). Official per-criterion caps are
+// Ausdrucksfähigkeit/Aufgabenbewältigung/Formale Richtigkeit/Aussprache at
+// 4/4/4/3 (Teil 1) and 8/8/8/6 (Teil 2, 3) — we omit Aussprache/Intonation
+// since pronunciation can't be judged from a text transcript, so these
+// totals are the other three criteria only (12/24/24, not 15/30/30).
+export const SPEAKING_TEIL_LABELS = [
+  "Mündlicher Ausdruck Teil 1",
+  "Mündlicher Ausdruck Teil 2",
+  "Mündlicher Ausdruck Teil 3",
+] as const;
+export const SPEAKING_TEIL_POINTS: Record<string, number> = {
+  "Mündlicher Ausdruck Teil 1": 12,
+  "Mündlicher Ausdruck Teil 2": 24,
+  "Mündlicher Ausdruck Teil 3": 24,
+};
+
+export function getTeilMaxPoints(teilLabel: string): number | undefined {
+  return TEIL_POINTS[teilLabel] ?? SPEAKING_TEIL_POINTS[teilLabel] ?? (teilLabel === WRITING_TEIL_LABEL ? WRITING_MAX_POINTS : undefined);
+}
+
 // --- Generation modes -----------------------------------------------------
 
-export type ExamMode = "full" | "reading" | "listening" | "writing" | "grammar";
+export type ExamMode = "full" | "reading" | "listening" | "writing" | "grammar" | "speaking";
+
+// Rough practice-session time budgets in minutes. "full" mirrors the
+// spec's official written timing (90 shared Lesen+Sprachbausteine + ~30
+// Hören + 30 Schreiben); single-skill budgets are our own sensible slices
+// since telc doesn't time those separately.
+export const TIME_BUDGET_MINUTES: Record<ExamMode, number> = {
+  full: 150,
+  reading: 60,
+  grammar: 30,
+  listening: 30,
+  writing: 30,
+  speaking: 20,
+};
 
 // For "full" mode, generation is split into these call groups to keep each
 // response within a comfortable token budget. Single-skill modes use one
@@ -54,6 +88,7 @@ export const SECTION_GROUPS: Record<
   grammar: { label: "Sprachbausteine (Teil 1–2)", teils: ["Sprachbausteine Teil 1", "Sprachbausteine Teil 2"] },
   listening: { label: "Hörverstehen (Teil 1–3)", teils: ["Hörverstehen Teil 1", "Hörverstehen Teil 2", "Hörverstehen Teil 3"] },
   writing: { label: "Schriftlicher Ausdruck", teils: [WRITING_TEIL_LABEL] },
+  speaking: { label: "Mündlicher Ausdruck (solo-adapted, Teil 1–3)", teils: [...SPEAKING_TEIL_LABELS] },
 };
 
 export function groupsForMode(mode: ExamMode): (keyof typeof SECTION_GROUPS)[] {
@@ -94,6 +129,24 @@ export function scoreWriting(evaluation: WritingEvaluation): number {
   return sum * 3; // max 15 * 3 = 45, per spec §4
 }
 
+// --- Speaking evaluation (solo-adapted rubric, no pronunciation) ----------
+
+export type SpeakingCriterion = { points: number; explanation: string };
+
+export type SpeakingEvaluation = {
+  criteria: {
+    ausdrucksfaehigkeit: SpeakingCriterion;
+    aufgabenbewaeltigung: SpeakingCriterion;
+    formaleRichtigkeit: SpeakingCriterion;
+  };
+  overallFeedback: string;
+};
+
+export function scoreSpeaking(evaluation: SpeakingEvaluation): number {
+  const { ausdrucksfaehigkeit, aufgabenbewaeltigung, formaleRichtigkeit } = evaluation.criteria;
+  return ausdrucksfaehigkeit.points + aufgabenbewaeltigung.points + formaleRichtigkeit.points;
+}
+
 // --- Mistake explanations for wrong objective answers ----------------------
 
 export type MistakeExplanation = {
@@ -109,7 +162,7 @@ this TypeScript shape:
 {
   "parts": [
     {
-      "type": "READING" | "LISTENING" | "WRITING" | "GRAMMAR",
+      "type": "READING" | "LISTENING" | "WRITING" | "GRAMMAR" | "SPEAKING",
       "teilLabel": string, // exact Teil name from the specification, e.g. "Leseverstehen Teil 1"
       "instructions": string, // the Arbeitsanweisung, in German
       "passageText"?: string, // reading passage(s) or listening script, per spec §3.6 for listening
@@ -161,6 +214,29 @@ this TypeScript shape:
 List every content word (noun/verb/adjective/adverb) the learner used
 beyond basic A1 function words, even if used correctly — this builds
 their personal vocabulary record.
+`;
+
+export const SPEAKING_EVALUATION_INSTRUCTIONS = `
+Respond with ONLY valid JSON (no markdown fences, no commentary) matching
+this TypeScript shape:
+
+{
+  "criteria": {
+    "ausdrucksfaehigkeit": { "points": number, "explanation": string },
+    "aufgabenbewaeltigung": { "points": number, "explanation": string },
+    "formaleRichtigkeit": { "points": number, "explanation": string }
+  },
+  "overallFeedback": string
+}
+
+Each criterion's "points" must not exceed the maxPoints given for that
+criterion in the task. This is a solo-adapted speaking task graded from a
+speech-to-text transcript — do NOT invent pronunciation/intonation
+feedback; grade only what the transcript shows (vocabulary range, task
+fulfillment, grammatical correctness). If the transcript looks garbled in
+a way consistent with transcription error rather than the learner's
+German, be lenient on formaleRichtigkeit and note the ambiguity in
+overallFeedback.
 `;
 
 export const MISTAKE_EXPLANATION_INSTRUCTIONS = `

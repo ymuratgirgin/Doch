@@ -116,7 +116,8 @@ model Exam {
   id          String   @id @default(cuid())
   title       String
   level       String   @default("B1")
-  examMode    String   @default("full") // "full" | "reading" | "listening" | "writing" | "grammar"
+  examMode    String   @default("full") // "full" | "reading" | "listening" | "writing" | "grammar" | "speaking"
+  timeBudgetMinutes Int? // countdown shown while taking the exam, per spec timing
   createdAt   DateTime @default(now())
   generatedBy String   @default("llm") // "llm" | "template"
   promptSpec  String? // snapshot of the spec/prompt used to generate this exam
