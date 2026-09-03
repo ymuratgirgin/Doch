@@ -8,9 +8,10 @@ learner's vocabulary and progress over time.
 ## Stack
 
 - Next.js (App Router) + TypeScript + Tailwind
-- Prisma 7 + SQLite (via `@prisma/adapter-better-sqlite3`)
+- Prisma 7 + Postgres (via `@prisma/adapter-pg`)
 - `@anthropic-ai/sdk` for exam generation and answer evaluation
-- Browser `SpeechSynthesis` (Web Speech API) for in-app listening playback
+- Browser `SpeechSynthesis` / `SpeechRecognition` (Web Speech API) for
+  in-app listening playback and speaking practice
 
 ## Status / what's still open
 
@@ -25,11 +26,15 @@ learner's vocabulary and progress over time.
   (browser speech-to-text only gives us a transcript, and Claude's API has
   no audio input), only vocabulary/task-fulfillment/grammar.
 
-## Getting started
+## Getting started (local)
+
+Needs a Postgres database — either a local install or any hosted free
+tier (Neon, Supabase, Vercel Postgres all work; grab the connection
+string they give you).
 
 ```bash
 npm install
-cp .env.example .env   # then fill in ANTHROPIC_API_KEY
+cp .env.example .env   # fill in DATABASE_URL (postgresql://...) and ANTHROPIC_API_KEY
 npx prisma migrate dev
 npx prisma db seed     # imports the B1 vocab list
 npm run enrich-vocab   # optional: adds translations + examples (needs API key)
@@ -37,6 +42,25 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and log in with any name.
+
+## Deploying to Vercel
+
+1. Push this repo to GitHub (already done if you're reading this from the
+   repo) and import it in [Vercel](https://vercel.com/new).
+2. In the new project, go to **Storage → Create Database → Postgres**
+   (or connect an existing Neon/Supabase instance) — this automatically
+   sets `DATABASE_URL` as a project environment variable, no copy-pasting
+   needed.
+3. Add `ANTHROPIC_API_KEY` under **Settings → Environment Variables**
+   (skip this if you're not ready — the app runs fine without it, exam
+   generation/grading/enrichment will just show a clear error).
+4. Deploy. The build script (`prisma generate && prisma migrate deploy &&
+   next build`) applies any pending migrations automatically on every
+   deploy — safe to run repeatedly, it only ever applies new migrations.
+5. **One-time seed step**: migrations don't seed data. After the first
+   successful deploy, run `npx prisma db seed` locally with `DATABASE_URL`
+   pointed at the production database (pull it via `vercel env pull`, or
+   copy it from the Storage tab) to load the B1 vocab list.
 
 ## How it works
 

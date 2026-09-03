@@ -6,11 +6,9 @@
 import { readFileSync } from "fs";
 import path from "path";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL || "file:./dev.db",
-});
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 type SourceEntry = {
@@ -54,25 +52,12 @@ async function main() {
     source: "goethe-telc-dwds",
   }));
 
-  // SQLite's driver adapter doesn't support createMany's skipDuplicates,
-  // so upsert one row at a time (fine for ~1.8k rows against SQLite).
-  const before = await prisma.vocabWord.count({ where: { level: "B1" } });
-  for (const row of rows) {
-    await prisma.vocabWord.upsert({
-      where: {
-        word_wordType_level: {
-          word: row.word,
-          wordType: row.wordType,
-          level: row.level,
-        },
-      },
-      create: row,
-      update: {},
-    });
-  }
-  const after = await prisma.vocabWord.count({ where: { level: "B1" } });
+  const result = await prisma.vocabWord.createMany({
+    data: rows,
+    skipDuplicates: true,
+  });
 
-  console.log(`Upserted ${rows.length} vocab words (${after - before} newly created).`);
+  console.log(`Inserted ${result.count} new vocab words (of ${rows.length} in source).`);
 }
 
 main()
