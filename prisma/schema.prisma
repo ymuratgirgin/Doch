@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// --- Vocabulary -------------------------------------------------------
+
+model VocabWord {
+  id         String   @id @default(cuid())
+  word       String
+  wordType   String? // noun / verb / adjective / etc.
+  article    String? // der/die/das for nouns
+  translation String?
+  exampleSentence String?
+  level      String   @default("B1") // A1..C1
+  source     String? // "telc" | "goethe" | ...
+  topic      String? // thematic grouping, e.g. "Arbeit", "Reisen"
+  createdAt  DateTime @default(now())
+
+  @@unique([word, wordType, level])
+  @@index([level])
+  @@index([topic])
+}
+
+// --- Exams --------------------------------------------------------------
+
+enum ExamPartType {
+  READING
+  LISTENING
+  WRITING
+  GRAMMAR
+  SPEAKING
+}
+
+model Exam {
+  id          String   @id @default(cuid())
+  title       String
+  level       String   @default("B1")
+  createdAt   DateTime @default(now())
+  generatedBy String   @default("llm") // "llm" | "template"
+  promptSpec  String? // snapshot of the spec/prompt used to generate this exam
+
+  parts    ExamPart[]
+  attempts Attempt[]
+}
+
+model ExamPart {
+  id       String       @id @default(cuid())
+  examId   String
+  exam     Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  type     ExamPartType
+  order    Int
+  instructions String?
+  passageText  String? // reading passage / listening transcript
+
+  questions Question[]
+
+  @@index([examId])
+}
+
+model Question {
+  id         String   @id @default(cuid())
+  examPartId String
+  examPart   ExamPart @relation(fields: [examPartId], references: [id], onDelete: Cascade)
+  order      Int
+  prompt     String
+  questionType String // "multiple_choice" | "gap_fill" | "free_text" | "matching"
+  options    String? // JSON-encoded array of choices, when applicable
+  correctAnswer String? // JSON-encoded correct answer(s) for auto-graded types
+
+  answers Answer[]
+
+  @@index([examPartId])
+}
+
+// --- Attempts / grading ---------------------------------------------------
+
+model Attempt {
+  id        String   @id @default(cuid())
+  examId    String
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  startedAt DateTime @default(now())
+  submittedAt DateTime?
+  score     Float? // overall percentage score once graded
+  feedback  String? // LLM-generated overall feedback summary
+
+  answers Answer[]
+
+  @@index([examId])
+}
+
+model Answer {
+  id          String   @id @default(cuid())
+  attemptId   String
+  attempt     Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId  String
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  responseText String?
+  isCorrect   Boolean?
+  scoreAwarded Float?
+  feedback    String? // per-answer LLM feedback (esp. for free_text/writing)
+
+  @@unique([attemptId, questionId])
+}
