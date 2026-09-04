@@ -16,6 +16,11 @@ import {
   scoreWriting,
 } from "@/lib/examSchema";
 
+// Grading can make several sequential Claude calls (mistake explanations,
+// then one per writing/speaking answer); on Vercel's Hobby plan a
+// serverless function is capped at 60s without Fluid Compute.
+export const maxDuration = 60;
+
 type SubmittedAnswer = { questionId: string; responseText: string };
 
 async function callModel(system: string, userMessage: string, maxTokens: number) {

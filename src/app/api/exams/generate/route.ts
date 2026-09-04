@@ -16,6 +16,10 @@ import {
   groupsForMode,
 } from "@/lib/examSchema";
 
+// Generation runs several Claude calls (some in parallel); on Vercel's
+// Hobby plan a serverless function is capped at 60s without Fluid Compute.
+export const maxDuration = 60;
+
 const MODE_TITLES: Record<ExamMode, string> = {
   full: "Telc B1 – Vollständige Mock-Prüfung",
   reading: "Telc B1 – Leseverstehen Übung",
