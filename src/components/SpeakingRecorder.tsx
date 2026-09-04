@@ -93,7 +93,7 @@ export default function SpeakingRecorder({
           className={`rounded-md px-3 py-1.5 text-sm font-medium ${
             recording
               ? "bg-red-600 text-white hover:bg-red-700"
-              : "bg-neutral-900 text-white hover:bg-neutral-700"
+              : "bg-orange-600 text-white hover:bg-orange-700"
           }`}
         >
           {recording ? "⏹ Stop recording" : "🎤 Record your answer (Deutsch)"}

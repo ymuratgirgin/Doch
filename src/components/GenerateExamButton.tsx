@@ -43,7 +43,7 @@ export default function GenerateExamButton({
         disabled={loading}
         className={
           className ??
-          "rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+          "rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
         }
       >
         {loading ? "Generating…" : label}

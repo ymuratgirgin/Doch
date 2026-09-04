@@ -38,18 +38,20 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-50 text-neutral-900">
+      <body className="min-h-full flex flex-col bg-white text-neutral-900">
         {user && <ActivityHeartbeat />}
-        <header className="border-b border-neutral-200 bg-white">
+        <header className="border-b border-blue-700 bg-blue-600">
           <div className="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3">
-            <span className="font-semibold">Doch!</span>
+            <Link href="/" className="text-lg font-bold text-white hover:text-orange-200">
+              Doch!
+            </Link>
             {user && (
               <nav className="flex flex-1 gap-4 text-sm">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="text-neutral-600 hover:text-neutral-900"
+                    className="text-blue-100 hover:text-white"
                   >
                     {link.label}
                   </Link>
@@ -58,7 +60,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             )}
             {user && (
               <div className="flex items-center gap-3 text-sm">
-                <span className="text-neutral-500">{user.name}</span>
+                <span className="text-blue-100">{user.name}</span>
                 <LogoutButton />
               </div>
             )}

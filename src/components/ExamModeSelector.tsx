@@ -55,7 +55,7 @@ export default function ExamModeSelector({
               aria-pressed={isSelected}
               className={`relative flex flex-col items-start gap-1 rounded-lg border p-4 text-left transition ${
                 isSelected
-                  ? "border-neutral-900 bg-neutral-900 text-white shadow-sm"
+                  ? "border-orange-600 bg-orange-600 text-white shadow-sm"
                   : opt.recommended
                     ? "border-blue-300 bg-white ring-1 ring-blue-200 hover:border-blue-400"
                     : "border-neutral-200 bg-white hover:border-neutral-400"
@@ -67,7 +67,7 @@ export default function ExamModeSelector({
                 </span>
               )}
               <span className="font-medium">{opt.title}</span>
-              <span className={isSelected ? "text-sm text-neutral-300" : "text-sm text-neutral-500"}>
+              <span className={isSelected ? "text-sm text-orange-100" : "text-sm text-neutral-500"}>
                 {opt.description}
               </span>
             </button>
@@ -79,7 +79,7 @@ export default function ExamModeSelector({
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
         >
           {loading ? "Generating… this can take a couple of minutes" : "Mock Exam Generate"}
         </button>
