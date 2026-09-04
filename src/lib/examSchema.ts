@@ -111,7 +111,6 @@ export type WritingEvaluation = {
     wordType?: string;
     article?: string;
     correct: boolean;
-    translation: string;
     exampleSentence: string;
     note?: string;
   }[];
@@ -203,8 +202,7 @@ this TypeScript shape:
       "wordType"?: string,
       "article"?: string, // der/die/das if a noun
       "correct": boolean, // was it used correctly (form, meaning, context)?
-      "translation": string,
-      "exampleSentence": string, // a clean example (their own if correct, a corrected one if not)
+      "exampleSentence": string, // a clean German example (their own if correct, a corrected one if not)
       "note"?: string // only if correct === false: what was wrong + the fix
     }
   ],
@@ -214,6 +212,9 @@ this TypeScript shape:
 List every content word (noun/verb/adjective/adverb) the learner used
 beyond basic A1 function words, even if used correctly — this builds
 their personal vocabulary record.
+
+Write "explanation", "exampleSentence", "note", and "overallFeedback" all
+in German — no English translations or glosses.
 `;
 
 export const SPEAKING_EVALUATION_INSTRUCTIONS = `
@@ -237,6 +238,9 @@ fulfillment, grammatical correctness). If the transcript looks garbled in
 a way consistent with transcription error rather than the learner's
 German, be lenient on formaleRichtigkeit and note the ambiguity in
 overallFeedback.
+
+Write every "explanation" and "overallFeedback" in German — no English
+translations or glosses.
 `;
 
 export const MISTAKE_EXPLANATION_INSTRUCTIONS = `
@@ -247,9 +251,10 @@ this TypeScript shape:
   { "questionId": string, "grammarTopic": string, "grammarExplanation": string }
 ]
 
-For grammarExplanation: state the rule in 1-2 plain sentences, then give
-2-3 short NEW German example sentences (not the exam sentence) that
-illustrate it, each followed by a short translation in parentheses.
+For grammarExplanation: state the rule in 1-2 plain German sentences, then
+give 2-3 short NEW German example sentences (not the exam sentence) that
+illustrate it. Write everything in German — no English translations or
+glosses.
 `;
 
 export function extractJson(text: string): unknown {

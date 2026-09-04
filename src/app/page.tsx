@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { computeStreak } from "@/lib/streak";
 import { getDailyRecommendation } from "@/lib/recommendation";
-import GenerateExamTile from "@/components/GenerateExamTile";
+import ExamModeSelector from "@/components/ExamModeSelector";
 import ExamCountdown from "@/components/ExamCountdown";
 
 export default async function DashboardPage() {
@@ -44,52 +44,58 @@ export default async function DashboardPage() {
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">
           Practice
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <GenerateExamTile
-            mode="full"
-            title="Complete Mock Exam"
-            description="Full telc B1 exam — Lesen, Sprachbausteine, Hören, Schreiben"
-            recommended={recommendation.mode === "full"}
-          />
-          <GenerateExamTile
-            mode="reading"
-            title="Reading"
-            description="Leseverstehen Teil 1–3"
-            recommended={recommendation.mode === "reading"}
-          />
-          <GenerateExamTile
-            mode="listening"
-            title="Listening"
-            description="Hörverstehen Teil 1–3, read aloud in-browser"
-            recommended={recommendation.mode === "listening"}
-          />
-          <GenerateExamTile
-            mode="writing"
-            title="Writing"
-            description="Schriftlicher Ausdruck — reply email"
-            recommended={recommendation.mode === "writing"}
-          />
-          <GenerateExamTile
-            mode="grammar"
-            title="Grammar"
-            description="Sprachbausteine Teil 1–2"
-            recommended={recommendation.mode === "grammar"}
-          />
-          <GenerateExamTile
-            mode="speaking"
-            title="Speaking"
-            description="Mündlicher Ausdruck, solo-adapted — speak or type your answer"
-          />
-          <Link
-            href="/flashcards"
-            className="flex flex-col items-start gap-1 rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-neutral-400 hover:shadow-sm"
-          >
-            <span className="font-medium">Flash Cards</span>
-            <span className="text-sm text-neutral-500">
-              Review vocabulary, prioritized by what you need most
-            </span>
-          </Link>
-        </div>
+        <p className="mb-3 text-sm text-neutral-500">
+          Pick an exam type, then generate it.
+        </p>
+        <ExamModeSelector
+          defaultMode={recommendation.mode}
+          options={[
+            {
+              mode: "full",
+              title: "Complete Mock Exam",
+              description: "Full telc B1 exam — Lesen, Sprachbausteine, Hören, Schreiben",
+              recommended: recommendation.mode === "full",
+            },
+            {
+              mode: "reading",
+              title: "Reading",
+              description: "Leseverstehen Teil 1–3",
+              recommended: recommendation.mode === "reading",
+            },
+            {
+              mode: "listening",
+              title: "Listening",
+              description: "Hörverstehen Teil 1–3, read aloud in-browser",
+              recommended: recommendation.mode === "listening",
+            },
+            {
+              mode: "writing",
+              title: "Writing",
+              description: "Schriftlicher Ausdruck — reply email",
+              recommended: recommendation.mode === "writing",
+            },
+            {
+              mode: "grammar",
+              title: "Grammar",
+              description: "Sprachbausteine Teil 1–2",
+              recommended: recommendation.mode === "grammar",
+            },
+            {
+              mode: "speaking",
+              title: "Speaking",
+              description: "Mündlicher Ausdruck, solo-adapted — speak or type your answer",
+            },
+          ]}
+        />
+        <Link
+          href="/flashcards"
+          className="mt-3 flex flex-col items-start gap-1 rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-neutral-400 hover:shadow-sm"
+        >
+          <span className="font-medium">Flash Cards</span>
+          <span className="text-sm text-neutral-500">
+            Review vocabulary, prioritized by what you need most
+          </span>
+        </Link>
       </div>
 
       <div>

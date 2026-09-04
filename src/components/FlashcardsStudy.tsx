@@ -7,7 +7,6 @@ type FlashCard = {
   word: string;
   wordType: string | null;
   article: string | null;
-  translation: string | null;
   exampleSentence: string | null;
   status: string;
   boxLevel: number;
@@ -144,11 +143,12 @@ export default function FlashcardsStudy() {
             </p>
             {flipped ? (
               <div className="space-y-2">
-                <p className="text-lg text-neutral-700">{cards[index].translation}</p>
-                {cards[index].exampleSentence && (
-                  <p className="text-sm italic text-neutral-500">
+                {cards[index].exampleSentence ? (
+                  <p className="text-lg italic text-neutral-700">
                     {cards[index].exampleSentence}
                   </p>
+                ) : (
+                  <p className="text-sm text-neutral-400">No example yet</p>
                 )}
               </div>
             ) : (

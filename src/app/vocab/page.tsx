@@ -10,14 +10,7 @@ export default async function VocabPage({
   const words = await prisma.vocabWord.findMany({
     where: {
       level: level || undefined,
-      ...(q
-        ? {
-            OR: [
-              { word: { contains: q } },
-              { translation: { contains: q } },
-            ],
-          }
-        : {}),
+      ...(q ? { word: { contains: q } } : {}),
     },
     orderBy: { word: "asc" },
     take: 200,
@@ -37,7 +30,7 @@ export default async function VocabPage({
           type="text"
           name="q"
           defaultValue={q}
-          placeholder="Search word or translation…"
+          placeholder="Search word…"
           className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm"
         />
         <button
@@ -60,7 +53,7 @@ export default async function VocabPage({
               <tr>
                 <th className="px-4 py-2">Word</th>
                 <th className="px-4 py-2">Type</th>
-                <th className="px-4 py-2">Translation</th>
+                <th className="px-4 py-2">Example</th>
                 <th className="px-4 py-2">Topic</th>
               </tr>
             </thead>
@@ -71,7 +64,7 @@ export default async function VocabPage({
                     {[w.article, w.word].filter(Boolean).join(" ")}
                   </td>
                   <td className="px-4 py-2 text-neutral-500">{w.wordType}</td>
-                  <td className="px-4 py-2">{w.translation}</td>
+                  <td className="px-4 py-2 italic text-neutral-600">{w.exampleSentence}</td>
                   <td className="px-4 py-2 text-neutral-500">{w.topic}</td>
                 </tr>
               ))}

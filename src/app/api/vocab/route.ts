@@ -9,14 +9,7 @@ export async function GET(req: NextRequest) {
   const words = await prisma.vocabWord.findMany({
     where: {
       level,
-      ...(q
-        ? {
-            OR: [
-              { word: { contains: q } },
-              { translation: { contains: q } },
-            ],
-          }
-        : {}),
+      ...(q ? { word: { contains: q } } : {}),
     },
     orderBy: { word: "asc" },
     take: 200,

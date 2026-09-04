@@ -1,4 +1,4 @@
-# Telc B1 Trainer
+# Doch!
 
 A web app for practicing the telc B1 German exam: generates fresh mock
 exams from the official telc blueprint via Claude, grades them (including

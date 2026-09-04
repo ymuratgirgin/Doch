@@ -5,7 +5,6 @@ export type FlashCard = {
   word: string;
   wordType: string | null;
   article: string | null;
-  translation: string | null;
   exampleSentence: string | null;
   status: string;
   boxLevel: number;
@@ -115,7 +114,6 @@ export async function getStudyQueue(userId: string, limit = 20): Promise<FlashCa
       word: source!.word,
       wordType: source!.wordType,
       article: source!.article,
-      translation: source!.translation,
       exampleSentence: source!.exampleSentence,
       status: row.status,
       boxLevel: row.boxLevel,

@@ -82,9 +82,6 @@ export default async function MistakesPage() {
                 <div key={w.id} className="rounded-lg border border-neutral-200 bg-white p-4">
                   <p className="text-sm font-medium">
                     {[w.article, w.word].filter(Boolean).join(" ")}
-                    {w.translation && (
-                      <span className="font-normal text-neutral-500"> — {w.translation}</span>
-                    )}
                   </p>
                   {w.usageNote && (
                     <p className="mt-1 whitespace-pre-wrap rounded-md bg-amber-50 p-3 text-sm text-amber-900">

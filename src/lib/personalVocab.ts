@@ -8,7 +8,6 @@ async function upsertPersonalWord(
     word: string;
     wordType?: string | null;
     article?: string | null;
-    translation?: string | null;
     exampleSentence?: string | null;
     usageCorrect?: boolean;
     usageNote?: string | null;
@@ -25,7 +24,6 @@ async function upsertPersonalWord(
         where: { id: existing.id },
         data: {
           article: entry.article ?? existing.article,
-          translation: entry.translation || existing.translation,
           exampleSentence: entry.exampleSentence || existing.exampleSentence,
           usageCorrect: entry.usageCorrect ?? existing.usageCorrect,
           usageNote: entry.usageCorrect === false ? (entry.usageNote ?? existing.usageNote) : existing.usageNote,
@@ -39,7 +37,6 @@ async function upsertPersonalWord(
           word: entry.word,
           wordType,
           article: entry.article,
-          translation: entry.translation,
           exampleSentence: entry.exampleSentence,
           usageCorrect: entry.usageCorrect ?? true,
           usageNote: entry.usageCorrect === false ? entry.usageNote : null,
@@ -73,7 +70,6 @@ export async function recordVocabUsage(
       word: entry.word,
       wordType: entry.wordType,
       article: entry.article,
-      translation: entry.translation,
       exampleSentence: entry.exampleSentence,
       usageCorrect: entry.correct,
       usageNote: entry.note,
@@ -82,27 +78,27 @@ export async function recordVocabUsage(
 }
 
 // Adds a word the learner typed in themselves (flashcards "add word" form).
-// Fills in translation/example via Claude if the learner didn't supply them.
+// Fills in a German example sentence via Claude if the learner didn't
+// supply one.
 export async function addManualWord(
   userId: string,
-  input: { word: string; wordType?: string; article?: string; translation?: string; exampleSentence?: string }
+  input: { word: string; wordType?: string; article?: string; exampleSentence?: string }
 ) {
-  let translation = input.translation?.trim() || null;
   let exampleSentence = input.exampleSentence?.trim() || null;
 
-  if ((!translation || !exampleSentence) && process.env.ANTHROPIC_API_KEY) {
+  if (!exampleSentence && process.env.ANTHROPIC_API_KEY) {
     try {
       const response = await anthropic.messages.create({
         model: EXAM_GENERATION_MODEL,
         max_tokens: 300,
-        system: "You are a German-English lexicographer helping a B1 learner build flashcards.",
+        system:
+          "You are a German lexicographer helping a B1 learner build flashcards. Everything you write is in German — no English.",
         messages: [
           {
             role: "user",
             content: `Word: ${[input.article, input.word].filter(Boolean).join(" ")} (${input.wordType ?? "unknown part of speech"})
 
-Respond with ONLY JSON: {"translation": string, "exampleSentence": string, "wordType": string, "article": string|null}
-- translation: concise English translation
+Respond with ONLY JSON: {"exampleSentence": string, "wordType": string, "article": string|null}
 - exampleSentence: one natural German sentence at B1 level using the word
 - wordType: your best guess at part of speech (noun/verb/adjective/adverb/etc.) if not given
 - article: der/die/das if it's a noun, else null`,
@@ -112,12 +108,10 @@ Respond with ONLY JSON: {"translation": string, "exampleSentence": string, "word
       const textBlock = response.content.find((b) => b.type === "text");
       if (textBlock?.type === "text") {
         const parsed = extractJson(textBlock.text) as {
-          translation?: string;
           exampleSentence?: string;
           wordType?: string;
           article?: string | null;
         };
-        translation = translation || parsed.translation || null;
         exampleSentence = exampleSentence || parsed.exampleSentence || null;
         input.wordType = input.wordType || parsed.wordType;
         input.article = input.article || parsed.article || undefined;
@@ -131,7 +125,6 @@ Respond with ONLY JSON: {"translation": string, "exampleSentence": string, "word
     word: input.word,
     wordType: input.wordType,
     article: input.article,
-    translation,
     exampleSentence,
     addedManually: true,
   });

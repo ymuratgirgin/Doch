@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Telc B1 Trainer",
+  title: "Doch!",
   description: "Mock exam generator and evaluator for the Telc B1 German exam",
 };
 
@@ -42,7 +42,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         {user && <ActivityHeartbeat />}
         <header className="border-b border-neutral-200 bg-white">
           <div className="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3">
-            <span className="font-semibold">Telc B1 Trainer</span>
+            <span className="font-semibold">Doch!</span>
             {user && (
               <nav className="flex flex-1 gap-4 text-sm">
                 {navLinks.map((link) => (
