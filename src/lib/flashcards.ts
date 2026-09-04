@@ -6,6 +6,11 @@ export type FlashCard = {
   wordType: string | null;
   article: string | null;
   exampleSentence: string | null;
+  meaning: string | null;
+  plural: string | null;
+  pastParticiple: string | null;
+  auxiliaryVerb: string | null;
+  praeteritum: string | null;
   status: string;
   boxLevel: number;
   reason: string; // why this card was prioritized, shown to the learner
@@ -115,6 +120,11 @@ export async function getStudyQueue(userId: string, limit = 20): Promise<FlashCa
       wordType: source!.wordType,
       article: source!.article,
       exampleSentence: source!.exampleSentence,
+      meaning: source!.meaning,
+      plural: source!.plural,
+      pastParticiple: source!.pastParticiple,
+      auxiliaryVerb: source!.auxiliaryVerb,
+      praeteritum: source!.praeteritum,
       status: row.status,
       boxLevel: row.boxLevel,
       reason,

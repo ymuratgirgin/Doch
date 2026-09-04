@@ -8,6 +8,11 @@ type FlashCard = {
   wordType: string | null;
   article: string | null;
   exampleSentence: string | null;
+  meaning: string | null;
+  plural: string | null;
+  pastParticiple: string | null;
+  auxiliaryVerb: string | null;
+  praeteritum: string | null;
   status: string;
   boxLevel: number;
   reason: string;
@@ -142,13 +147,41 @@ export default function FlashcardsStudy() {
               {[cards[index].article, cards[index].word].filter(Boolean).join(" ")}
             </p>
             {flipped ? (
-              <div className="space-y-2">
-                {cards[index].exampleSentence ? (
-                  <p className="text-lg italic text-neutral-700">
+              <div className="w-full space-y-2 text-left">
+                {cards[index].meaning ? (
+                  <p className="text-lg text-neutral-800">{cards[index].meaning}</p>
+                ) : (
+                  <p className="text-sm text-neutral-400">No meaning saved yet</p>
+                )}
+
+                {cards[index].wordType === "noun" && (
+                  <p className="text-sm text-neutral-600">
+                    Plural:{" "}
+                    {cards[index].plural ? (
+                      <span className="font-medium">die {cards[index].plural}</span>
+                    ) : (
+                      <span className="text-neutral-400">unbekannt</span>
+                    )}
+                  </p>
+                )}
+
+                {cards[index].wordType === "verb" && (
+                  <p className="text-sm text-neutral-600">
+                    Partizip II:{" "}
+                    <span className="font-medium">
+                      {cards[index].pastParticiple ?? "unbekannt"}
+                    </span>{" "}
+                    ({cards[index].auxiliaryVerb ?? "haben/sein?"}) · Präteritum:{" "}
+                    <span className="font-medium">
+                      {cards[index].praeteritum ?? "unbekannt"}
+                    </span>
+                  </p>
+                )}
+
+                {cards[index].exampleSentence && (
+                  <p className="text-sm italic text-neutral-500">
                     {cards[index].exampleSentence}
                   </p>
-                ) : (
-                  <p className="text-sm text-neutral-400">No example yet</p>
                 )}
               </div>
             ) : (

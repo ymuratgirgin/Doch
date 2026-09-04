@@ -112,6 +112,11 @@ export type WritingEvaluation = {
     article?: string;
     correct: boolean;
     exampleSentence: string;
+    meaning?: string;
+    plural?: string;
+    pastParticiple?: string;
+    auxiliaryVerb?: string;
+    praeteritum?: string;
     note?: string;
   }[];
   overallFeedback: string;
@@ -203,6 +208,11 @@ this TypeScript shape:
       "article"?: string, // der/die/das if a noun
       "correct": boolean, // was it used correctly (form, meaning, context)?
       "exampleSentence": string, // a clean German example (their own if correct, a corrected one if not)
+      "meaning"?: string, // short German definition/paraphrase of the word
+      "plural"?: string, // nouns only: plural form without the article
+      "pastParticiple"?: string, // verbs only: Partizip II
+      "auxiliaryVerb"?: string, // verbs only: "haben" | "sein" (Perfekt auxiliary)
+      "praeteritum"?: string, // verbs only: 3rd person singular Präteritum form
       "note"?: string // only if correct === false: what was wrong + the fix
     }
   ],
@@ -213,8 +223,8 @@ List every content word (noun/verb/adjective/adverb) the learner used
 beyond basic A1 function words, even if used correctly — this builds
 their personal vocabulary record.
 
-Write "explanation", "exampleSentence", "note", and "overallFeedback" all
-in German — no English translations or glosses.
+Write "explanation", "exampleSentence", "meaning", "note", and
+"overallFeedback" all in German — no English translations or glosses.
 `;
 
 export const SPEAKING_EVALUATION_INSTRUCTIONS = `
