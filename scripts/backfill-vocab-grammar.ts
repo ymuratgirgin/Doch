@@ -4,7 +4,9 @@
 // current values.
 //
 // Usage: npx tsx scripts/backfill-vocab-grammar.ts
+// Requires DATABASE_URL in the environment (.env is loaded).
 
+import "dotenv/config";
 import { readFileSync } from "fs";
 import path from "path";
 import { PrismaClient } from "../src/generated/prisma/client";
