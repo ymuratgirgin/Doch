@@ -1,149 +1,78 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { computeStreak } from "@/lib/streak";
-import { getDailyRecommendation } from "@/lib/recommendation";
-import ExamModeSelector from "@/components/ExamModeSelector";
-import ExamCountdown from "@/components/ExamCountdown";
 
-export default async function DashboardPage() {
+const SECTIONS: {
+  href: string;
+  emoji: string;
+  title: string;
+  description: string;
+  tone: "orange" | "blue";
+}[] = [
+  {
+    href: "/exams",
+    emoji: "📝",
+    title: "Mock Exam",
+    description: "Generate a fresh telc B1 practice exam and take it",
+    tone: "orange",
+  },
+  {
+    href: "/flashcards",
+    emoji: "🗂️",
+    title: "Flashcards",
+    description: "Review vocabulary, prioritized by what you need most",
+    tone: "blue",
+  },
+  {
+    href: "/mistakes",
+    emoji: "💡",
+    title: "Learn from Mistakes",
+    description: "Grouped explanations with fresh examples",
+    tone: "orange",
+  },
+  {
+    href: "/progress",
+    emoji: "📊",
+    title: "Statistics",
+    description: "Scores, streaks, and vocabulary growth over time",
+    tone: "blue",
+  },
+];
+
+const TONE_CLASSES: Record<"orange" | "blue", string> = {
+  orange: "border-orange-200 bg-orange-50 hover:border-orange-300 hover:bg-orange-100",
+  blue: "border-blue-200 bg-blue-50 hover:border-blue-300 hover:bg-blue-100",
+};
+
+export default async function HomePage() {
   const user = await requireUser();
-
-  const [vocabCount, attemptCount, streak, recommendation] = await Promise.all([
-    prisma.vocabWord.count(),
-    prisma.attempt.count({ where: { userId: user.id, submittedAt: { not: null } } }),
-    computeStreak(user.id),
-    getDailyRecommendation(user.id, user.examDate),
-  ]);
+  const streak = await computeStreak(user.id);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Willkommen, {user.name}</h1>
-          <p className="mt-1 text-neutral-600">
-            Practice for the telc B1 German exam with fresh, LLM-generated
-            mock exams and instant feedback.
-          </p>
-        </div>
+    <div className="space-y-10">
+      <div className="space-y-2 text-center">
+        <h1 className="text-4xl font-bold text-blue-900">Doch!</h1>
+        <p className="text-neutral-500">Willkommen, {user.name}</p>
         {streak > 0 && (
-          <div className="rounded-md border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-800">
-            🔥 {streak} day{streak === 1 ? "" : "s"}
+          <div className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-sm font-medium text-orange-800">
+            🔥 {streak} day{streak === 1 ? "" : "s"} streak
           </div>
         )}
       </div>
 
-      <ExamCountdown examDate={user.examDate?.toISOString() ?? null} />
-
-      <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-        <span className="font-medium">Today&apos;s recommendation: </span>
-        {recommendation.reason}
-      </div>
-
-      <div>
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">
-          Practice
-        </h2>
-        <p className="mb-3 text-sm text-neutral-500">
-          Pick an exam type, then generate it.
-        </p>
-        <ExamModeSelector
-          defaultMode={recommendation.mode}
-          options={[
-            {
-              mode: "full",
-              title: "Complete Mock Exam",
-              description: "Full telc B1 exam — Lesen, Sprachbausteine, Hören, Schreiben",
-              recommended: recommendation.mode === "full",
-            },
-            {
-              mode: "reading",
-              title: "Reading",
-              description: "Leseverstehen Teil 1–3",
-              recommended: recommendation.mode === "reading",
-            },
-            {
-              mode: "listening",
-              title: "Listening",
-              description: "Hörverstehen Teil 1–3, read aloud in-browser",
-              recommended: recommendation.mode === "listening",
-            },
-            {
-              mode: "writing",
-              title: "Writing",
-              description: "Schriftlicher Ausdruck — reply email",
-              recommended: recommendation.mode === "writing",
-            },
-            {
-              mode: "grammar",
-              title: "Grammar",
-              description: "Sprachbausteine Teil 1–2",
-              recommended: recommendation.mode === "grammar",
-            },
-            {
-              mode: "speaking",
-              title: "Speaking",
-              description: "Mündlicher Ausdruck, solo-adapted — speak or type your answer",
-            },
-          ]}
-        />
-        <Link
-          href="/flashcards"
-          className="mt-3 flex flex-col items-start gap-1 rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-neutral-400 hover:shadow-sm"
-        >
-          <span className="font-medium">Flash Cards</span>
-          <span className="text-sm text-neutral-500">
-            Review vocabulary, prioritized by what you need most
-          </span>
-        </Link>
-      </div>
-
-      <div>
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">
-          Review
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        {SECTIONS.map((s) => (
           <Link
-            href="/mistakes"
-            className="flex flex-col items-start gap-1 rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-neutral-400 hover:shadow-sm"
+            key={s.href}
+            href={s.href}
+            className={`flex flex-col items-start gap-2 rounded-2xl border p-6 transition hover:shadow-md ${TONE_CLASSES[s.tone]}`}
           >
-            <span className="font-medium">Review your previous mistakes</span>
-            <span className="text-sm text-neutral-500">
-              Grouped explanations with fresh examples
-            </span>
+            <span className="text-3xl">{s.emoji}</span>
+            <span className="text-lg font-semibold text-neutral-900">{s.title}</span>
+            <span className="text-sm text-neutral-600">{s.description}</span>
           </Link>
-          <Link
-            href="/progress"
-            className="flex flex-col items-start gap-1 rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-neutral-400 hover:shadow-sm"
-          >
-            <span className="font-medium">Review your progress</span>
-            <span className="text-sm text-neutral-500">
-              Time spent, exams taken, words learned, pass likelihood
-            </span>
-          </Link>
-        </div>
+        ))}
       </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Vocabulary words available" value={vocabCount} />
-        <StatCard label="Exams you've completed" value={attemptCount} />
-      </div>
-
-      {vocabCount === 0 && (
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          No vocabulary is loaded yet. Run the seed script to import the B1
-          word list.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <div className="text-2xl font-semibold">{value}</div>
-      <div className="text-sm text-neutral-500">{label}</div>
     </div>
   );
 }

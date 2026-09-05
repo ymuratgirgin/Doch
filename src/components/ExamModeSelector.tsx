@@ -53,21 +53,21 @@ export default function ExamModeSelector({
               type="button"
               onClick={() => setSelected(opt.mode)}
               aria-pressed={isSelected}
-              className={`relative flex flex-col items-start gap-1 rounded-lg border p-4 text-left transition ${
+              className={`relative flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition ${
                 isSelected
-                  ? "border-orange-600 bg-orange-600 text-white shadow-sm"
+                  ? "border-orange-300 bg-orange-200 text-orange-950 shadow-sm"
                   : opt.recommended
-                    ? "border-blue-300 bg-white ring-1 ring-blue-200 hover:border-blue-400"
-                    : "border-neutral-200 bg-white hover:border-neutral-400"
+                    ? "border-blue-200 bg-blue-50 hover:border-blue-300"
+                    : "border-neutral-200 bg-white hover:border-neutral-300"
               }`}
             >
               {opt.recommended && !isSelected && (
-                <span className="absolute -top-2 right-3 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-medium text-white">
+                <span className="absolute -top-2 right-3 rounded-full bg-blue-200 px-2 py-0.5 text-[10px] font-medium text-blue-900">
                   Recommended today
                 </span>
               )}
               <span className="font-medium">{opt.title}</span>
-              <span className={isSelected ? "text-sm text-orange-100" : "text-sm text-neutral-500"}>
+              <span className={isSelected ? "text-sm text-orange-900" : "text-sm text-neutral-500"}>
                 {opt.description}
               </span>
             </button>
@@ -79,7 +79,7 @@ export default function ExamModeSelector({
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+          className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
         >
           {loading ? "Generating… this can take a couple of minutes" : "Mock Exam Generate"}
         </button>

@@ -92,8 +92,8 @@ export default function SpeakingRecorder({
           onClick={recording ? stop : start}
           className={`rounded-md px-3 py-1.5 text-sm font-medium ${
             recording
-              ? "bg-red-600 text-white hover:bg-red-700"
-              : "bg-orange-600 text-white hover:bg-orange-700"
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : "bg-orange-300 text-orange-950 hover:bg-orange-400"
           }`}
         >
           {recording ? "⏹ Stop recording" : "🎤 Record your answer (Deutsch)"}

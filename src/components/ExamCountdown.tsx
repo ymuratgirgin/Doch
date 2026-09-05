@@ -53,7 +53,7 @@ export default function ExamCountdown({ examDate }: { examDate: string | null })
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+            className="rounded-md bg-orange-300 px-3 py-1.5 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
           >
             {saving ? "…" : "Save"}
           </button>

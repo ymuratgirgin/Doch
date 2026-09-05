@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type FlashCard = {
@@ -85,6 +86,9 @@ export default function FlashcardsStudy() {
             Prioritized from words you&apos;ve used incorrectly, words due
             for review, and words you&apos;ve added yourself.
           </p>
+          <Link href="/vocab" className="mt-1 inline-block text-sm text-blue-700 underline hover:text-blue-900">
+            Browse the full vocabulary list →
+          </Link>
         </div>
         <button
           onClick={() => setShowAddForm((s) => !s)}
@@ -106,7 +110,7 @@ export default function FlashcardsStudy() {
           <button
             type="submit"
             disabled={adding || !newWord.trim()}
-            className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+            className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
           >
             {adding ? "Adding…" : "Add"}
           </button>
@@ -126,7 +130,7 @@ export default function FlashcardsStudy() {
           <p className="font-medium">Session complete — nice work!</p>
           <button
             onClick={loadQueue}
-            className="mt-3 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
+            className="mt-3 rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400"
           >
             Start another session
           </button>

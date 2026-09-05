@@ -30,7 +30,7 @@ export default async function MistakesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Review your mistakes</h1>
+        <h1 className="text-2xl font-semibold text-blue-900">Learn from Mistakes</h1>
         <p className="mt-1 text-neutral-600">
           Grouped by topic, most frequent first. Each explanation includes
           fresh examples — read them, don&apos;t just skim the rule.

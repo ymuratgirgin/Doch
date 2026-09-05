@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { computePassEstimate } from "@/lib/passEstimate";
 import { computeStreak } from "@/lib/streak";
-import ExamCountdown from "@/components/ExamCountdown";
 import ScoreTrendChart from "@/components/ScoreTrendChart";
 
 const MODE_LABELS: Record<string, string> = {
@@ -69,7 +68,7 @@ export default async function ProgressPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Your progress</h1>
+          <h1 className="text-2xl font-semibold text-blue-900">Statistics</h1>
           <p className="mt-1 text-neutral-600">{user.name}</p>
         </div>
         {streak > 0 && (
@@ -78,8 +77,6 @@ export default async function ProgressPage() {
           </div>
         )}
       </div>
-
-      <ExamCountdown examDate={user.examDate?.toISOString() ?? null} />
 
       {passEstimate && (
         <div

@@ -22,12 +22,10 @@ export const metadata: Metadata = {
 };
 
 const navLinks = [
-  { href: "/", label: "Dashboard" },
-  { href: "/exams", label: "Exams" },
-  { href: "/vocab", label: "Vocabulary" },
+  { href: "/exams", label: "Mock Exam" },
   { href: "/flashcards", label: "Flashcards" },
-  { href: "/mistakes", label: "Mistakes" },
-  { href: "/progress", label: "Progress" },
+  { href: "/mistakes", label: "Learn from Mistakes" },
+  { href: "/progress", label: "Statistics" },
 ];
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -40,18 +38,18 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-white text-neutral-900">
         {user && <ActivityHeartbeat />}
-        <header className="border-b border-blue-700 bg-blue-600">
+        <header className="border-b border-blue-100 bg-blue-50">
           <div className="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3">
-            <Link href="/" className="text-lg font-bold text-white hover:text-orange-200">
+            <Link href="/" className="text-lg font-bold text-blue-900 hover:text-orange-500">
               Doch!
             </Link>
             {user && (
-              <nav className="flex flex-1 gap-4 text-sm">
+              <nav className="flex flex-1 gap-5 text-sm">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="text-blue-100 hover:text-white"
+                    className="text-blue-700 hover:text-blue-900"
                   >
                     {link.label}
                   </Link>
@@ -60,7 +58,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             )}
             {user && (
               <div className="flex items-center gap-3 text-sm">
-                <span className="text-blue-100">{user.name}</span>
+                <span className="text-blue-700">{user.name}</span>
                 <LogoutButton />
               </div>
             )}
