@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
     word,
     wordType: body.wordType,
     article: body.article,
-    translation: body.translation,
     exampleSentence: body.exampleSentence,
   });
 

@@ -10,6 +10,14 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Used only by the Prisma CLI (generate/migrate/studio), never by the
+    // app at runtime (src/lib/prisma.ts connects via its own PrismaPg
+    // adapter using DATABASE_URL directly). `migrate deploy` needs a
+    // direct, non-pooled connection to take its advisory lock — pointing
+    // this at Neon's pooled DATABASE_URL causes "P1002: timed out trying
+    // to acquire a postgres advisory lock". DIRECT_URL should be Neon's
+    // unpooled host (no "-pooler" in the hostname); falls back to
+    // DATABASE_URL so local dev (no pooler) keeps working unchanged.
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });

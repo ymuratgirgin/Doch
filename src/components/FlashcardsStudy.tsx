@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type FlashCard = {
@@ -7,8 +8,12 @@ type FlashCard = {
   word: string;
   wordType: string | null;
   article: string | null;
-  translation: string | null;
   exampleSentence: string | null;
+  meaning: string | null;
+  plural: string | null;
+  pastParticiple: string | null;
+  auxiliaryVerb: string | null;
+  praeteritum: string | null;
   status: string;
   boxLevel: number;
   reason: string;
@@ -81,6 +86,9 @@ export default function FlashcardsStudy() {
             Prioritized from words you&apos;ve used incorrectly, words due
             for review, and words you&apos;ve added yourself.
           </p>
+          <Link href="/vocab" className="mt-1 inline-block text-sm text-blue-700 underline hover:text-blue-900">
+            Browse the full vocabulary list →
+          </Link>
         </div>
         <button
           onClick={() => setShowAddForm((s) => !s)}
@@ -102,7 +110,7 @@ export default function FlashcardsStudy() {
           <button
             type="submit"
             disabled={adding || !newWord.trim()}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+            className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
           >
             {adding ? "Adding…" : "Add"}
           </button>
@@ -122,7 +130,7 @@ export default function FlashcardsStudy() {
           <p className="font-medium">Session complete — nice work!</p>
           <button
             onClick={loadQueue}
-            className="mt-3 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+            className="mt-3 rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400"
           >
             Start another session
           </button>
@@ -143,8 +151,37 @@ export default function FlashcardsStudy() {
               {[cards[index].article, cards[index].word].filter(Boolean).join(" ")}
             </p>
             {flipped ? (
-              <div className="space-y-2">
-                <p className="text-lg text-neutral-700">{cards[index].translation}</p>
+              <div className="w-full space-y-2 text-left">
+                {cards[index].meaning ? (
+                  <p className="text-lg text-neutral-800">{cards[index].meaning}</p>
+                ) : (
+                  <p className="text-sm text-neutral-400">No meaning saved yet</p>
+                )}
+
+                {cards[index].wordType === "noun" && (
+                  <p className="text-sm text-neutral-600">
+                    Plural:{" "}
+                    {cards[index].plural ? (
+                      <span className="font-medium">die {cards[index].plural}</span>
+                    ) : (
+                      <span className="text-neutral-400">unbekannt</span>
+                    )}
+                  </p>
+                )}
+
+                {cards[index].wordType === "verb" && (
+                  <p className="text-sm text-neutral-600">
+                    Partizip II:{" "}
+                    <span className="font-medium">
+                      {cards[index].pastParticiple ?? "unbekannt"}
+                    </span>{" "}
+                    ({cards[index].auxiliaryVerb ?? "haben/sein?"}) · Präteritum:{" "}
+                    <span className="font-medium">
+                      {cards[index].praeteritum ?? "unbekannt"}
+                    </span>
+                  </p>
+                )}
+
                 {cards[index].exampleSentence && (
                   <p className="text-sm italic text-neutral-500">
                     {cards[index].exampleSentence}

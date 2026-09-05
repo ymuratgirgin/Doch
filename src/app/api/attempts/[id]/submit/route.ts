@@ -16,23 +16,33 @@ import {
   scoreWriting,
 } from "@/lib/examSchema";
 
-// Grading can make several sequential Claude calls (mistake explanations,
-// then one per writing/speaking answer); on Vercel's Hobby plan a
-// serverless function is capped at 60s without Fluid Compute.
-export const maxDuration = 60;
+// Grading makes several sequential Claude calls (mistake explanations, then
+// one per writing/speaking answer), which can add up. 300s is the
+// Hobby-plan ceiling with Fluid Compute enabled (Project Settings ->
+// Functions).
+export const maxDuration = 300;
+
+// Per-call ceiling, comfortably under maxDuration even with a few sequential
+// calls in one request, so a stuck call fails fast and reports null (see
+// callModel's catch below) rather than Vercel silently killing the whole
+// grading run with no result reaching the browser.
+const ANTHROPIC_CALL_TIMEOUT_MS = 120_000;
 
 type SubmittedAnswer = { questionId: string; responseText: string };
 
 async function callModel(system: string, userMessage: string, maxTokens: number) {
-  const response = await anthropic.messages.create({
-    model: EXAM_GENERATION_MODEL,
-    max_tokens: maxTokens,
-    system,
-    messages: [{ role: "user", content: userMessage }],
-  });
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") return null;
   try {
+    const response = await anthropic.messages.create(
+      {
+        model: EXAM_GENERATION_MODEL,
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: "user", content: userMessage }],
+      },
+      { timeout: ANTHROPIC_CALL_TIMEOUT_MS }
+    );
+    const textBlock = response.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") return null;
     return extractJson(textBlock.text);
   } catch {
     return null;

@@ -20,6 +20,11 @@ type SourceEntry = {
   alt_spellings: string[];
   homograph_index: number | null;
   source_url: string;
+  meaning?: string | null;
+  plural?: string | null;
+  pastParticiple?: string | null;
+  auxiliaryVerb?: string | null;
+  praeteritum?: string | null;
 };
 
 const POS_MAP: Record<string, string> = {
@@ -50,6 +55,11 @@ async function main() {
     article: e.articles[0] ?? null,
     level: "B1",
     source: "goethe-telc-dwds",
+    meaning: e.meaning ?? null,
+    plural: e.plural ?? null,
+    pastParticiple: e.pastParticiple ?? null,
+    auxiliaryVerb: e.auxiliaryVerb ?? null,
+    praeteritum: e.praeteritum ?? null,
   }));
 
   const result = await prisma.vocabWord.createMany({

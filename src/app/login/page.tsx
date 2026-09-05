@@ -39,7 +39,7 @@ export default function LoginPage() {
   return (
     <div className="mx-auto max-w-sm space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Telc B1 Trainer</h1>
+        <h1 className="text-2xl font-semibold">Doch!</h1>
         <p className="mt-1 text-neutral-600">
           Enter your name to continue. No password — this is a lightweight
           login for a small group of testers.
@@ -87,7 +87,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !name.trim()}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+            className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
           >
             {loading ? "…" : "Continue"}
           </button>

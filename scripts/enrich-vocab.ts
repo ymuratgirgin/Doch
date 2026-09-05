@@ -1,7 +1,7 @@
-// Fills in translation + exampleSentence for every VocabWord row that's
-// missing one, by batching words through Claude. Idempotent/resumable:
-// each batch only pulls rows still missing a translation, so a crash or
-// Ctrl-C just leaves the rest for the next run.
+// Fills in exampleSentence for every VocabWord row that's missing one, by
+// batching words through Claude. Idempotent/resumable: each batch only
+// pulls rows still missing an example, so a crash or Ctrl-C just leaves the
+// rest for the next run.
 //
 // Usage: npx tsx scripts/enrich-vocab.ts
 // Requires ANTHROPIC_API_KEY in the environment (.env is loaded).
@@ -12,7 +12,6 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const BATCH_SIZE = 50;
-const TARGET_LANGUAGE = "English";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -20,7 +19,6 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 type EnrichedEntry = {
   id: string;
-  translation: string;
   exampleSentence: string;
 };
 
@@ -44,19 +42,18 @@ async function enrichBatch(
     model: "claude-sonnet-5",
     max_tokens: 4000,
     system:
-      `You are a German-${TARGET_LANGUAGE} lexicographer building flashcard content for CEFR B1 learners.`,
+      "You are a German lexicographer building flashcard content for CEFR B1 learners. Everything you write is in German — no English.",
     messages: [
       {
         role: "user",
         content: `For each German B1 word below (format: id :: word (part of speech)), give:
-- translation: a concise ${TARGET_LANGUAGE} translation (the most common B1 sense)
 - exampleSentence: ONE natural German sentence using the word at B1 level, showing its meaning in context
 
 Words:
 ${listing}
 
 Respond with ONLY a JSON array (no markdown fences, no commentary):
-[{"id": string, "translation": string, "exampleSentence": string}, ...]
+[{"id": string, "exampleSentence": string}, ...]
 One entry per word, in any order, using the exact id given.`,
       },
     ],
@@ -78,7 +75,7 @@ async function main() {
   let totalDone = 0;
   for (;;) {
     const batch = await prisma.vocabWord.findMany({
-      where: { translation: null },
+      where: { exampleSentence: null },
       take: BATCH_SIZE,
       select: { id: true, word: true, wordType: true, article: true },
     });
@@ -99,7 +96,7 @@ async function main() {
       if (!e) continue;
       await prisma.vocabWord.update({
         where: { id: w.id },
-        data: { translation: e.translation, exampleSentence: e.exampleSentence },
+        data: { exampleSentence: e.exampleSentence },
       });
     }
     totalDone += batch.length;

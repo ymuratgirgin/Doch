@@ -242,7 +242,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
       <button
         onClick={() => handleSubmit()}
         disabled={submitting || !attemptId}
-        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+        className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
       >
         {submitting ? "Submitting…" : "Submit exam"}
       </button>

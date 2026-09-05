@@ -2,19 +2,22 @@ import { prisma } from "@/lib/prisma";
 import { anthropic, EXAM_GENERATION_MODEL } from "@/lib/anthropic";
 import { extractJson, type WritingEvaluation } from "@/lib/examSchema";
 
-async function upsertPersonalWord(
-  userId: string,
-  entry: {
-    word: string;
-    wordType?: string | null;
-    article?: string | null;
-    translation?: string | null;
-    exampleSentence?: string | null;
-    usageCorrect?: boolean;
-    usageNote?: string | null;
-    addedManually?: boolean;
-  }
-) {
+type WordDetails = {
+  word: string;
+  wordType?: string | null;
+  article?: string | null;
+  exampleSentence?: string | null;
+  meaning?: string | null;
+  plural?: string | null;
+  pastParticiple?: string | null;
+  auxiliaryVerb?: string | null;
+  praeteritum?: string | null;
+  usageCorrect?: boolean;
+  usageNote?: string | null;
+  addedManually?: boolean;
+};
+
+async function upsertPersonalWord(userId: string, entry: WordDetails) {
   const wordType = entry.wordType ?? null;
   const existing = await prisma.personalVocabWord.findFirst({
     where: { userId, word: entry.word, wordType },
@@ -25,8 +28,12 @@ async function upsertPersonalWord(
         where: { id: existing.id },
         data: {
           article: entry.article ?? existing.article,
-          translation: entry.translation || existing.translation,
           exampleSentence: entry.exampleSentence || existing.exampleSentence,
+          meaning: entry.meaning || existing.meaning,
+          plural: entry.plural || existing.plural,
+          pastParticiple: entry.pastParticiple || existing.pastParticiple,
+          auxiliaryVerb: entry.auxiliaryVerb || existing.auxiliaryVerb,
+          praeteritum: entry.praeteritum || existing.praeteritum,
           usageCorrect: entry.usageCorrect ?? existing.usageCorrect,
           usageNote: entry.usageCorrect === false ? (entry.usageNote ?? existing.usageNote) : existing.usageNote,
           timesUsed: existing.timesUsed + 1,
@@ -39,8 +46,12 @@ async function upsertPersonalWord(
           word: entry.word,
           wordType,
           article: entry.article,
-          translation: entry.translation,
           exampleSentence: entry.exampleSentence,
+          meaning: entry.meaning,
+          plural: entry.plural,
+          pastParticiple: entry.pastParticiple,
+          auxiliaryVerb: entry.auxiliaryVerb,
+          praeteritum: entry.praeteritum,
           usageCorrect: entry.usageCorrect ?? true,
           usageNote: entry.usageCorrect === false ? entry.usageNote : null,
           addedManually: entry.addedManually ?? false,
@@ -73,8 +84,12 @@ export async function recordVocabUsage(
       word: entry.word,
       wordType: entry.wordType,
       article: entry.article,
-      translation: entry.translation,
       exampleSentence: entry.exampleSentence,
+      meaning: entry.meaning,
+      plural: entry.plural,
+      pastParticiple: entry.pastParticiple,
+      auxiliaryVerb: entry.auxiliaryVerb,
+      praeteritum: entry.praeteritum,
       usageCorrect: entry.correct,
       usageNote: entry.note,
     });
@@ -82,43 +97,64 @@ export async function recordVocabUsage(
 }
 
 // Adds a word the learner typed in themselves (flashcards "add word" form).
-// Fills in translation/example via Claude if the learner didn't supply them.
+// Fills in the flashcard details via Claude if the learner didn't supply
+// them: a German meaning, an example sentence, and (depending on part of
+// speech) the plural or the verb's Perfekt/Präteritum forms.
 export async function addManualWord(
   userId: string,
-  input: { word: string; wordType?: string; article?: string; translation?: string; exampleSentence?: string }
+  input: { word: string; wordType?: string; article?: string; exampleSentence?: string }
 ) {
-  let translation = input.translation?.trim() || null;
   let exampleSentence = input.exampleSentence?.trim() || null;
+  let meaning: string | null = null;
+  let plural: string | null = null;
+  let pastParticiple: string | null = null;
+  let auxiliaryVerb: string | null = null;
+  let praeteritum: string | null = null;
 
-  if ((!translation || !exampleSentence) && process.env.ANTHROPIC_API_KEY) {
+  if (process.env.ANTHROPIC_API_KEY) {
     try {
       const response = await anthropic.messages.create({
         model: EXAM_GENERATION_MODEL,
-        max_tokens: 300,
-        system: "You are a German-English lexicographer helping a B1 learner build flashcards.",
+        max_tokens: 500,
+        system:
+          "You are a German lexicographer helping a B1 learner build flashcards. Everything you write is in German — no English.",
         messages: [
           {
             role: "user",
             content: `Word: ${[input.article, input.word].filter(Boolean).join(" ")} (${input.wordType ?? "unknown part of speech"})
 
-Respond with ONLY JSON: {"translation": string, "exampleSentence": string, "wordType": string, "article": string|null}
-- translation: concise English translation
-- exampleSentence: one natural German sentence at B1 level using the word
+Respond with ONLY JSON:
+{"exampleSentence": string, "meaning": string, "wordType": string, "article": string|null, "plural": string|null, "pastParticiple": string|null, "auxiliaryVerb": string|null, "praeteritum": string|null}
+
+- exampleSentence: one natural German sentence at B1 level using the word (skip only if one was already supplied)
+- meaning: a short German definition/paraphrase of the word (not a translation into another language)
 - wordType: your best guess at part of speech (noun/verb/adjective/adverb/etc.) if not given
-- article: der/die/das if it's a noun, else null`,
+- article: der/die/das if it's a noun, else null
+- plural: if it's a noun, its plural form without the article; else null
+- pastParticiple: if it's a verb, the Partizip II; else null
+- auxiliaryVerb: if it's a verb, "haben" or "sein" (Perfekt auxiliary); else null
+- praeteritum: if it's a verb, the 3rd person singular Präteritum form; else null`,
           },
         ],
       });
       const textBlock = response.content.find((b) => b.type === "text");
       if (textBlock?.type === "text") {
         const parsed = extractJson(textBlock.text) as {
-          translation?: string;
           exampleSentence?: string;
+          meaning?: string;
           wordType?: string;
           article?: string | null;
+          plural?: string | null;
+          pastParticiple?: string | null;
+          auxiliaryVerb?: string | null;
+          praeteritum?: string | null;
         };
-        translation = translation || parsed.translation || null;
         exampleSentence = exampleSentence || parsed.exampleSentence || null;
+        meaning = parsed.meaning || null;
+        plural = parsed.plural || null;
+        pastParticiple = parsed.pastParticiple || null;
+        auxiliaryVerb = parsed.auxiliaryVerb || null;
+        praeteritum = parsed.praeteritum || null;
         input.wordType = input.wordType || parsed.wordType;
         input.article = input.article || parsed.article || undefined;
       }
@@ -131,8 +167,12 @@ Respond with ONLY JSON: {"translation": string, "exampleSentence": string, "word
     word: input.word,
     wordType: input.wordType,
     article: input.article,
-    translation,
     exampleSentence,
+    meaning,
+    plural,
+    pastParticiple,
+    auxiliaryVerb,
+    praeteritum,
     addedManually: true,
   });
 }
