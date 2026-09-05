@@ -17,17 +17,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Telc B1 Trainer",
+  title: "Doch!",
   description: "Mock exam generator and evaluator for the Telc B1 German exam",
 };
 
 const navLinks = [
-  { href: "/", label: "Dashboard" },
-  { href: "/exams", label: "Exams" },
-  { href: "/vocab", label: "Vocabulary" },
+  { href: "/exams", label: "Mock Exam" },
   { href: "/flashcards", label: "Flashcards" },
-  { href: "/mistakes", label: "Mistakes" },
-  { href: "/progress", label: "Progress" },
+  { href: "/mistakes", label: "Learn from Mistakes" },
+  { href: "/progress", label: "Statistics" },
 ];
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -38,18 +36,20 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-50 text-neutral-900">
+      <body className="min-h-full flex flex-col bg-white text-neutral-900">
         {user && <ActivityHeartbeat />}
-        <header className="border-b border-neutral-200 bg-white">
+        <header className="border-b border-blue-100 bg-blue-50">
           <div className="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3">
-            <span className="font-semibold">Telc B1 Trainer</span>
+            <Link href="/" className="text-lg font-bold text-blue-900 hover:text-orange-500">
+              Doch!
+            </Link>
             {user && (
-              <nav className="flex flex-1 gap-4 text-sm">
+              <nav className="flex flex-1 gap-5 text-sm">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="text-neutral-600 hover:text-neutral-900"
+                    className="text-blue-700 hover:text-blue-900"
                   >
                     {link.label}
                   </Link>
@@ -58,7 +58,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             )}
             {user && (
               <div className="flex items-center gap-3 text-sm">
-                <span className="text-neutral-500">{user.name}</span>
+                <span className="text-blue-700">{user.name}</span>
                 <LogoutButton />
               </div>
             )}

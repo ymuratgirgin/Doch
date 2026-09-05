@@ -1,4 +1,4 @@
-# Telc B1 Trainer
+# Doch!
 
 A web app for practicing the telc B1 German exam: generates fresh mock
 exams from the official telc blueprint via Claude, grades them (including
@@ -51,13 +51,23 @@ Open [http://localhost:3000](http://localhost:3000) and log in with any name.
    (or connect an existing Neon/Supabase instance) — this automatically
    sets `DATABASE_URL` as a project environment variable, no copy-pasting
    needed.
-3. Add `ANTHROPIC_API_KEY` under **Settings → Environment Variables**
+3. Add `DIRECT_URL` under **Settings → Environment Variables**, set to
+   Neon's **unpooled** connection string (same credentials as
+   `DATABASE_URL`, just without `-pooler` in the hostname). `prisma
+   migrate deploy` needs a direct, non-pooled connection to take its
+   advisory lock — pointing it at the pooled `DATABASE_URL` instead
+   causes deploys to fail with `P1002: timed out trying to acquire a
+   postgres advisory lock`. Scope it to every environment (Production
+   *and* Preview) you deploy to.
+4. Add `ANTHROPIC_API_KEY` under **Settings → Environment Variables**
    (skip this if you're not ready — the app runs fine without it, exam
-   generation/grading/enrichment will just show a clear error).
-4. Deploy. The build script (`prisma generate && prisma migrate deploy &&
+   generation/grading/enrichment will just show a clear error). Scope it
+   to every environment you deploy to as well — a key added for
+   Production only won't be available on Preview deployments.
+5. Deploy. The build script (`prisma generate && prisma migrate deploy &&
    next build`) applies any pending migrations automatically on every
    deploy — safe to run repeatedly, it only ever applies new migrations.
-5. **One-time seed step**: migrations don't seed data. After the first
+6. **One-time seed step**: migrations don't seed data. After the first
    successful deploy, run `npx prisma db seed` locally with `DATABASE_URL`
    pointed at the production database (pull it via `vercel env pull`, or
    copy it from the Storage tab) to load the B1 vocab list.

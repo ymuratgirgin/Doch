@@ -44,6 +44,11 @@ model VocabWord {
   article         String? // der/die/das for nouns
   translation     String?
   exampleSentence String?
+  meaning         String? // short German definition/paraphrase, shown on flashcard reveal
+  plural          String? // nouns only: plural form without the article
+  pastParticiple  String? // verbs only: Partizip II
+  auxiliaryVerb   String? // verbs only: "haben" | "sein" (Perfekt auxiliary)
+  praeteritum     String? // verbs only: 3rd person singular Präteritum form
   level           String   @default("B1") // A1..C1
   source          String? // "telc" | "goethe" | ...
   topic           String? // thematic grouping, e.g. "Arbeit", "Reisen"
@@ -90,6 +95,11 @@ model PersonalVocabWord {
   article         String?
   translation     String?
   exampleSentence String? // drawn from (or corrected from) the learner's own usage
+  meaning         String? // short German definition/paraphrase, shown on flashcard reveal
+  plural          String? // nouns only: plural form without the article
+  pastParticiple  String? // verbs only: Partizip II
+  auxiliaryVerb   String? // verbs only: "haben" | "sein" (Perfekt auxiliary)
+  praeteritum     String? // verbs only: 3rd person singular Präteritum form
   usageCorrect    Boolean  @default(true) // was this word used correctly the most recent time?
   usageNote       String? // brief correction/explanation when usage was off
   timesUsed       Int      @default(1) // also doubles as an "appeared in my exams" frequency signal

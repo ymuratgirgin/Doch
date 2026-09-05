@@ -16,9 +16,16 @@ import {
   groupsForMode,
 } from "@/lib/examSchema";
 
-// Generation runs several Claude calls (some in parallel); on Vercel's
-// Hobby plan a serverless function is capped at 60s without Fluid Compute.
-export const maxDuration = 60;
+// Generation runs several Claude calls in parallel, and a full response can
+// legitimately take a couple of minutes under load. 300s is the Hobby-plan
+// ceiling with Fluid Compute enabled (Project Settings -> Functions).
+export const maxDuration = 300;
+
+// Comfortably under maxDuration so a genuinely stuck call surfaces as a
+// caught, reported error (see the try/catch in POST below) instead of
+// Vercel silently killing the function at the maxDuration wall with no
+// message reaching the browser.
+const ANTHROPIC_CALL_TIMEOUT_MS = 260_000;
 
 const MODE_TITLES: Record<ExamMode, string> = {
   full: "Telc B1 – Vollständige Mock-Prüfung",
@@ -67,19 +74,34 @@ async function generateSection(
     .filter(Boolean)
     .join("\n\n");
 
-  const response = await anthropic.messages.create({
-    model: EXAM_GENERATION_MODEL,
-    max_tokens: maxTokens,
-    system: EXAM_GENERATION_PROMPT,
-    messages: [{ role: "user", content: userMessage }],
-  });
+  let response;
+  try {
+    response = await anthropic.messages.create(
+      {
+        model: EXAM_GENERATION_MODEL,
+        max_tokens: maxTokens,
+        system: EXAM_GENERATION_PROMPT,
+        messages: [{ role: "user", content: userMessage }],
+      },
+      { timeout: ANTHROPIC_CALL_TIMEOUT_MS }
+    );
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    throw new Error(`Generating "${groupKey}" failed: ${reason}`);
+  }
 
   const textBlock = response.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") {
     throw new Error(`Model returned no text content for section "${groupKey}"`);
   }
 
-  const parsed = extractJson(textBlock.text) as GeneratedSectionResponse;
+  let parsed: GeneratedSectionResponse;
+  try {
+    parsed = extractJson(textBlock.text) as GeneratedSectionResponse;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    throw new Error(`Model returned invalid JSON for section "${groupKey}": ${reason}`);
+  }
   if (!Array.isArray(parsed.parts)) {
     throw new Error(`Malformed response for section "${groupKey}"`);
   }
