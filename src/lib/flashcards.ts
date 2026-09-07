@@ -5,7 +5,7 @@ export type FlashCard = {
   word: string;
   wordType: string | null;
   article: string | null;
-  exampleSentence: string | null;
+  exampleSentences: string[];
   meaning: string | null;
   translationTr: string | null;
   plural: string | null;
@@ -120,7 +120,14 @@ export async function getStudyQueue(userId: string, limit = 20): Promise<FlashCa
       word: source!.word,
       wordType: source!.wordType,
       article: source!.article,
-      exampleSentence: source!.exampleSentence,
+      // VocabWord curates 2 example sentences; PersonalVocabWord carries a
+      // single one drawn from the learner's own usage — normalize to an
+      // array either way so the UI doesn't need to know which source it is.
+      exampleSentences: row.vocabWord
+        ? row.vocabWord.exampleSentences
+        : row.personalVocabWord?.exampleSentence
+          ? [row.personalVocabWord.exampleSentence]
+          : [],
       meaning: source!.meaning,
       translationTr: source!.translationTr,
       plural: source!.plural,
