@@ -53,9 +53,11 @@ export default async function HomePage() {
         )}
       </div>
 
-      {user ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {SECTIONS.map((s) => (
+      {!user && <LoginForm />}
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        {SECTIONS.map((s) =>
+          user ? (
             <Link
               key={s.href}
               href={s.href}
@@ -65,11 +67,18 @@ export default async function HomePage() {
               <span className="text-lg font-semibold text-neutral-900">{s.title}</span>
               <span className="text-sm text-neutral-600">{s.description}</span>
             </Link>
-          ))}
-        </div>
-      ) : (
-        <LoginForm />
-      )}
+          ) : (
+            <div
+              key={s.href}
+              className="flex flex-col items-start gap-2 rounded-2xl border border-blue-100 bg-blue-50/50 p-6 opacity-60"
+            >
+              <span className="text-3xl">{s.emoji}</span>
+              <span className="text-lg font-semibold text-neutral-900">{s.title}</span>
+              <span className="text-sm text-neutral-600">{s.description}</span>
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 }

@@ -26,8 +26,24 @@ export default function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: chosenName }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Login failed");
+
+      // Read as text first — an empty or non-JSON body (a crashed
+      // function, a platform error page, a network hiccup) would make
+      // res.json() throw a cryptic "Unexpected end of JSON input" before
+      // we ever get to check res.ok. Parse defensively so a server-side
+      // failure surfaces a clear message instead.
+      const text = await res.text();
+      let data: { error?: string; userId?: string } = {};
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          // Not JSON — data stays {}, handled by the checks below.
+        }
+      }
+
+      if (!res.ok) throw new Error(data.error ?? `Login failed (server returned ${res.status})`);
+      if (!data.userId) throw new Error("Server didn't confirm the login — please try again.");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
