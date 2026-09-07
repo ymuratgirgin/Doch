@@ -42,7 +42,7 @@ model VocabWord {
   word            String
   wordType        String? // noun / verb / adjective / etc.
   article         String? // der/die/das for nouns
-  translation     String?
+  translationTr   String? // Turkish translation, shown on flashcard reveal
   exampleSentence String?
   meaning         String? // short German definition/paraphrase, shown on flashcard reveal
   plural          String? // nouns only: plural form without the article
@@ -93,7 +93,7 @@ model PersonalVocabWord {
   word            String
   wordType        String?
   article         String?
-  translation     String?
+  translationTr   String? // Turkish translation, shown on flashcard reveal
   exampleSentence String? // drawn from (or corrected from) the learner's own usage
   meaning         String? // short German definition/paraphrase, shown on flashcard reveal
   plural          String? // nouns only: plural form without the article

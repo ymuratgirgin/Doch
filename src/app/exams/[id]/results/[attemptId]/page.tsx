@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { computePassEstimate } from "@/lib/passEstimate";
 import { resolveMatchingAnswer } from "@/lib/matching";
 import { getItemNumber } from "@/lib/examSchema";
+import { parseWritingPrompt } from "@/lib/writingPrompt";
 const CRITERION_LABELS: Record<string, string> = {
   aufgabenbewaeltigung: "Aufgabenbewältigung",
   kommunikativeGestaltung: "Kommunikative Gestaltung",
@@ -88,7 +89,25 @@ export default async function ResultsPage({
 
             return (
               <div key={q.id} className="rounded-lg border border-neutral-200 bg-white p-4">
-                <p className="text-sm font-medium">{numberLabel}</p>
+                {part.type === "WRITING" ? (
+                  (() => {
+                    const { intro, points } = parseWritingPrompt(q.prompt);
+                    return (
+                      <div className="text-sm font-medium">
+                        <p>{intro}</p>
+                        {points.length > 0 && (
+                          <ul className="mt-2 list-disc space-y-1 pl-5 font-normal">
+                            {points.map((pt, idx) => (
+                              <li key={idx}>{pt}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <p className="text-sm font-medium">{numberLabel}</p>
+                )}
                 <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">
                   Your answer:{" "}
                   {answer?.responseText ? (

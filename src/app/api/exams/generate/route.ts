@@ -36,6 +36,24 @@ const MODE_TITLES: Record<ExamMode, string> = {
   speaking: "Telc B1 – Mündlicher Ausdruck Übung (solo)",
 };
 
+// The prompt instructs the model to emit exactly one question for
+// Schriftlicher Ausdruck (one reply letter covering all four Leitpunkte),
+// but merge defensively in case it ever splits the points into separate
+// questions anyway — that would otherwise show up as several disconnected
+// writing boxes instead of one shared reply area.
+function normalizeWritingPart(part: GeneratedPart): GeneratedPart {
+  if (part.type !== "WRITING" || part.questions.length <= 1) return part;
+  return {
+    ...part,
+    questions: [
+      {
+        prompt: part.questions.map((q) => q.prompt.trim()).filter(Boolean).join("\n"),
+        questionType: "free_text",
+      },
+    ],
+  };
+}
+
 const SPEAKING_ADAPTATION_NOTE = `
 This is a SOLO practice adaptation of the paired oral exam in §3.8 — the
 learner has no partner, so adapt each Teil to a monologue:
@@ -206,7 +224,7 @@ export async function POST(req: NextRequest) {
             return parts;
           })
         );
-        allParts = results.flat();
+        allParts = results.flat().map(normalizeWritingPart);
       } catch (err) {
         send({ type: "error", message: err instanceof Error ? err.message : "Generation failed" });
         controller.close();

@@ -6,6 +6,7 @@ import ListeningPlayer from "@/components/ListeningPlayer";
 import SpeakingRecorder from "@/components/SpeakingRecorder";
 import { parseMatchingOption } from "@/lib/matching";
 import { getItemNumber } from "@/lib/examSchema";
+import { parseWritingPrompt } from "@/lib/writingPrompt";
 
 type Question = {
   id: string;
@@ -310,7 +311,25 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                   part.type === "GRAMMAR" ? `${itemNumber}.` : `${itemNumber}. ${q.prompt}`;
                 return (
                   <div key={q.id}>
-                    <p className="text-sm font-medium">{numberLabel}</p>
+                    {part.type === "WRITING" ? (
+                      (() => {
+                        const { intro, points } = parseWritingPrompt(q.prompt);
+                        return (
+                          <div className="text-sm font-medium">
+                            <p>{intro}</p>
+                            {points.length > 0 && (
+                              <ul className="mt-2 list-disc space-y-1 pl-5 font-normal">
+                                {points.map((pt, i) => (
+                                  <li key={i}>{pt}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <p className="text-sm font-medium">{numberLabel}</p>
+                    )}
                     {part.type === "SPEAKING" ? (
                       <div className="mt-2">
                         <SpeakingRecorder

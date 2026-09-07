@@ -8,6 +8,7 @@ type WordDetails = {
   article?: string | null;
   exampleSentence?: string | null;
   meaning?: string | null;
+  translationTr?: string | null;
   plural?: string | null;
   pastParticiple?: string | null;
   auxiliaryVerb?: string | null;
@@ -30,6 +31,7 @@ async function upsertPersonalWord(userId: string, entry: WordDetails) {
           article: entry.article ?? existing.article,
           exampleSentence: entry.exampleSentence || existing.exampleSentence,
           meaning: entry.meaning || existing.meaning,
+          translationTr: entry.translationTr || existing.translationTr,
           plural: entry.plural || existing.plural,
           pastParticiple: entry.pastParticiple || existing.pastParticiple,
           auxiliaryVerb: entry.auxiliaryVerb || existing.auxiliaryVerb,
@@ -48,6 +50,7 @@ async function upsertPersonalWord(userId: string, entry: WordDetails) {
           article: entry.article,
           exampleSentence: entry.exampleSentence,
           meaning: entry.meaning,
+          translationTr: entry.translationTr,
           plural: entry.plural,
           pastParticiple: entry.pastParticiple,
           auxiliaryVerb: entry.auxiliaryVerb,
@@ -86,6 +89,7 @@ export async function recordVocabUsage(
       article: entry.article,
       exampleSentence: entry.exampleSentence,
       meaning: entry.meaning,
+      translationTr: entry.translationTr,
       plural: entry.plural,
       pastParticiple: entry.pastParticiple,
       auxiliaryVerb: entry.auxiliaryVerb,
@@ -106,6 +110,7 @@ export async function addManualWord(
 ) {
   let exampleSentence = input.exampleSentence?.trim() || null;
   let meaning: string | null = null;
+  let translationTr: string | null = null;
   let plural: string | null = null;
   let pastParticiple: string | null = null;
   let auxiliaryVerb: string | null = null;
@@ -121,17 +126,18 @@ export async function addManualWord(
         model: LOOKUP_MODEL,
         max_tokens: 2000,
         system:
-          "You are a German lexicographer helping a B1 learner build flashcards. Everything you write is in German — no English.",
+          "You are a German lexicographer helping a B1 learner build flashcards. Everything you write is in German, except translationTr which is Turkish — no English anywhere.",
         messages: [
           {
             role: "user",
             content: `Word: ${[input.article, input.word].filter(Boolean).join(" ")} (${input.wordType ?? "unknown part of speech"})
 
 Respond with ONLY JSON:
-{"exampleSentence": string, "meaning": string, "wordType": string, "article": string|null, "plural": string|null, "pastParticiple": string|null, "auxiliaryVerb": string|null, "praeteritum": string|null}
+{"exampleSentence": string, "meaning": string, "translationTr": string, "wordType": string, "article": string|null, "plural": string|null, "pastParticiple": string|null, "auxiliaryVerb": string|null, "praeteritum": string|null}
 
 - exampleSentence: one natural German sentence at B1 level using the word (skip only if one was already supplied)
 - meaning: a short German definition/paraphrase of the word (not a translation into another language)
+- translationTr: the Turkish translation of the word (dictionary form)
 - wordType: your best guess at part of speech (noun/verb/adjective/adverb/etc.) if not given
 - article: der/die/das if it's a noun, else null
 - plural: if it's a noun, its plural form without the article; else null
@@ -146,6 +152,7 @@ Respond with ONLY JSON:
         const parsed = extractJson(textBlock.text) as {
           exampleSentence?: string;
           meaning?: string;
+          translationTr?: string;
           wordType?: string;
           article?: string | null;
           plural?: string | null;
@@ -155,6 +162,7 @@ Respond with ONLY JSON:
         };
         exampleSentence = exampleSentence || parsed.exampleSentence || null;
         meaning = parsed.meaning || null;
+        translationTr = parsed.translationTr || null;
         plural = parsed.plural || null;
         pastParticiple = parsed.pastParticiple || null;
         auxiliaryVerb = parsed.auxiliaryVerb || null;
@@ -173,6 +181,7 @@ Respond with ONLY JSON:
     article: input.article,
     exampleSentence,
     meaning,
+    translationTr,
     plural,
     pastParticiple,
     auxiliaryVerb,

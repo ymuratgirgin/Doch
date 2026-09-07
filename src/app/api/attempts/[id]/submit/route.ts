@@ -78,12 +78,11 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const questionsById = new Map(
-    attempt.exam.parts.flatMap((p) => p.questions).map((q) => [q.id, q])
-  );
+  const allQuestions = attempt.exam.parts.flatMap((p) => p.questions);
   const partTypeByQuestionId = new Map(
     attempt.exam.parts.flatMap((p) => p.questions.map((q) => [q.id, p.type] as const))
   );
+  const responseByQuestionId = new Map(answers.map((a) => [a.questionId, a.responseText]));
 
   type Graded = {
     questionId: string;
@@ -99,15 +98,32 @@ export async function POST(
   const wrongForExplanation: { questionId: string; prompt: string; correctAnswer: string; learnerAnswer: string }[] = [];
   const freeTextAnswers: { questionId: string; prompt: string; responseText: string; maxPoints: number }[] = [];
 
-  for (const answer of answers) {
-    const question = questionsById.get(answer.questionId);
-    if (!question) continue;
+  // Grade every question in the exam, not just the ones the learner
+  // actually answered — an unanswered question must still count against
+  // the denominator as 0 points, otherwise skipping everything but one
+  // easy question and getting it right would score as 100%.
+  for (const question of allQuestions) {
+    const responseText = responseByQuestionId.get(question.id) ?? "";
 
     if (question.questionType === "free_text") {
+      if (!responseText.trim()) {
+        // Nothing written — award 0 without spending an API call grading blank text.
+        graded.push({
+          questionId: question.id,
+          responseText,
+          isCorrect: null,
+          scoreAwarded: 0,
+          feedback: null,
+          grammarTopic: null,
+          grammarExplanation: null,
+          criteriaJson: null,
+        });
+        continue;
+      }
       freeTextAnswers.push({
-        questionId: answer.questionId,
+        questionId: question.id,
         prompt: question.prompt,
-        responseText: answer.responseText,
+        responseText,
         maxPoints: question.maxPoints,
       });
       continue;
@@ -115,11 +131,12 @@ export async function POST(
 
     const isCorrect =
       !!question.correctAnswer &&
-      answer.responseText.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
+      !!responseText.trim() &&
+      responseText.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
 
     graded.push({
-      questionId: answer.questionId,
-      responseText: answer.responseText,
+      questionId: question.id,
+      responseText,
       isCorrect,
       scoreAwarded: isCorrect ? question.maxPoints : 0,
       feedback: null,
@@ -130,10 +147,10 @@ export async function POST(
 
     if (!isCorrect) {
       wrongForExplanation.push({
-        questionId: answer.questionId,
+        questionId: question.id,
         prompt: question.prompt,
         correctAnswer: question.correctAnswer ?? "",
-        learnerAnswer: answer.responseText,
+        learnerAnswer: responseText,
       });
     }
   }
@@ -274,9 +291,7 @@ export async function POST(
     )
   );
 
-  const allMaxPoints = [...questionsById.values()]
-    .filter((q) => graded.some((g) => g.questionId === q.id))
-    .reduce((sum, q) => sum + q.maxPoints, 0);
+  const allMaxPoints = allQuestions.reduce((sum, q) => sum + q.maxPoints, 0);
   const allScores = graded.reduce((sum, g) => sum + (g.scoreAwarded ?? 0), 0);
   const overallScore = allMaxPoints > 0 ? (allScores / allMaxPoints) * 100 : null;
 
