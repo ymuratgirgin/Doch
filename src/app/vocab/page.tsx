@@ -23,8 +23,13 @@ export default async function VocabPage({
       level: level || undefined,
       ...(wordFilter ? { word: wordFilter } : {}),
     },
-    orderBy: { word: "asc" },
   });
+
+  // German nouns are capitalized and everything else isn't, so a plain SQL
+  // ORDER BY (byte/collation order, uppercase before lowercase) clusters all
+  // nouns before every other word type instead of a true A-Z listing. Sort
+  // case-insensitively with German collation rules instead.
+  words.sort((a, b) => a.word.localeCompare(b.word, "de", { sensitivity: "accent" }));
 
   return (
     <div className="space-y-6">
