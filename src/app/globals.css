@@ -19,3 +19,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* iOS Safari zooms the page in on focus of any form control with a
+   computed font-size under 16px. Most inputs in this app use Tailwind's
+   text-sm (14px), which would trigger it on every tap — force 16px on
+   mobile widths so typing an answer doesn't yank the viewport around. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

@@ -179,57 +179,88 @@ export async function POST(req: NextRequest) {
         .join(", ")}`
     : "";
 
-  let allParts: GeneratedPart[];
-  try {
-    const groups = groupsForMode(mode);
-    const results = await Promise.all(
-      groups.map((g) => generateSection(g, { weakAreasText, vocabText }))
-    );
-    allParts = results.flat();
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Generation failed" },
-      { status: 502 }
-    );
-  }
+  const groups = groupsForMode(mode);
+  const encoder = new TextEncoder();
 
-  const exam = await prisma.exam.create({
-    data: {
-      title: MODE_TITLES[mode],
-      examMode: mode,
-      timeBudgetMinutes: TIME_BUDGET_MINUTES[mode],
-      generatedBy: "llm",
-      promptSpec: EXAM_GENERATION_PROMPT,
-      focusAreas: JSON.stringify(weakAreas.map((w) => w.grammarTopic)),
-      parts: {
-        create: allParts.map((part, partIndex) => {
-          const teilTotal = getTeilMaxPoints(part.teilLabel);
-          const perItem =
-            teilTotal && part.questions.length > 0 ? teilTotal / part.questions.length : 1;
+  // Server-Sent Events: emit one "section_done" event per completed
+  // section (of `groups.length` total) as the parallel calls resolve, so
+  // the client can render real, determinate progress instead of a static
+  // "please wait" — the only per-call granularity available without a much
+  // bigger background-job/polling rearchitecture, since generation for a
+  // "full" mock is otherwise a single multi-minute request with no
+  // visibility into how far along it is.
+  const stream = new ReadableStream({
+    async start(controller) {
+      function send(event: Record<string, unknown>) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      }
 
-          return {
-            type: part.type,
-            teilLabel: part.teilLabel,
-            order: partIndex,
-            instructions: part.instructions,
-            passageText: part.passageText,
-            questions: {
-              create: part.questions.map((q, qIndex) => ({
-                order: qIndex,
-                prompt: q.prompt,
-                questionType: q.questionType,
-                options: q.options ? JSON.stringify(q.options) : null,
-                correctAnswer: q.correctAnswer ?? null,
-                grammarTopic: q.grammarTopic ?? null,
-                maxPoints: perItem,
-              })),
-            },
-          };
-        }),
-      },
+      send({ type: "start", total: groups.length });
+
+      let allParts: GeneratedPart[];
+      try {
+        const results = await Promise.all(
+          groups.map(async (g) => {
+            const parts = await generateSection(g, { weakAreasText, vocabText });
+            send({ type: "section_done", section: SECTION_GROUPS[g].label });
+            return parts;
+          })
+        );
+        allParts = results.flat();
+      } catch (err) {
+        send({ type: "error", message: err instanceof Error ? err.message : "Generation failed" });
+        controller.close();
+        return;
+      }
+
+      const exam = await prisma.exam.create({
+        data: {
+          title: MODE_TITLES[mode],
+          examMode: mode,
+          timeBudgetMinutes: TIME_BUDGET_MINUTES[mode],
+          generatedBy: "llm",
+          promptSpec: EXAM_GENERATION_PROMPT,
+          focusAreas: JSON.stringify(weakAreas.map((w) => w.grammarTopic)),
+          parts: {
+            create: allParts.map((part, partIndex) => {
+              const teilTotal = getTeilMaxPoints(part.teilLabel);
+              const perItem =
+                teilTotal && part.questions.length > 0 ? teilTotal / part.questions.length : 1;
+
+              return {
+                type: part.type,
+                teilLabel: part.teilLabel,
+                order: partIndex,
+                instructions: part.instructions,
+                passageText: part.passageText,
+                questions: {
+                  create: part.questions.map((q, qIndex) => ({
+                    order: qIndex,
+                    prompt: q.prompt,
+                    questionType: q.questionType,
+                    options: q.options ? JSON.stringify(q.options) : null,
+                    correctAnswer: q.correctAnswer ?? null,
+                    grammarTopic: q.grammarTopic ?? null,
+                    maxPoints: perItem,
+                  })),
+                },
+              };
+            }),
+          },
+        },
+        select: { id: true },
+      });
+
+      send({ type: "done", examId: exam.id });
+      controller.close();
     },
-    select: { id: true },
   });
 
-  return NextResponse.json({ examId: exam.id });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }

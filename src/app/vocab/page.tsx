@@ -47,7 +47,7 @@ export default async function VocabPage({
           B1 word list (see <code>prisma/seed.ts</code>).
         </p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-neutral-100 text-neutral-600">
               <tr>

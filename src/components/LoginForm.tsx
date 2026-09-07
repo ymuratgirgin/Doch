@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
+export default function LoginForm() {
   const router = useRouter();
   const [existingUsers, setExistingUsers] = useState<{ id: string; name: string }[]>([]);
   const [name, setName] = useState("");
@@ -26,9 +26,24 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: chosenName }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Login failed");
-      router.push("/");
+
+      // Read as text first — an empty or non-JSON body (a crashed
+      // function, a platform error page, a network hiccup) would make
+      // res.json() throw a cryptic "Unexpected end of JSON input" before
+      // we ever get to check res.ok. Parse defensively so a server-side
+      // failure surfaces a clear message instead.
+      const text = await res.text();
+      let data: { error?: string; userId?: string } = {};
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          // Not JSON — data stays {}, handled by the checks below.
+        }
+      }
+
+      if (!res.ok) throw new Error(data.error ?? `Login failed (server returned ${res.status})`);
+      if (!data.userId) throw new Error("Server didn't confirm the login — please try again.");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -37,27 +52,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Doch!</h1>
-        <p className="mt-1 text-neutral-600">
-          Enter your name to continue. No password — this is a lightweight
-          login for a small group of testers.
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-sm space-y-6 rounded-2xl border border-blue-100 bg-blue-50 p-6">
+      <p className="text-center text-sm text-neutral-600">
+        Enter your name to continue. No password — this is a lightweight
+        login for a small group of testers.
+      </p>
 
       {existingUsers.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-neutral-700">
-            Continue as:
-          </p>
+          <p className="text-sm font-medium text-neutral-700">Continue as:</p>
           <div className="flex flex-wrap gap-2">
             {existingUsers.map((u) => (
               <button
                 key={u.id}
                 onClick={() => login(u.name)}
                 disabled={loading}
-                className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-100 disabled:opacity-50"
+                className="rounded-md border border-blue-200 bg-white px-3 py-1.5 text-sm hover:bg-blue-100 disabled:opacity-50"
               >
                 {u.name}
               </button>
@@ -82,19 +92,19 @@ export default function LoginPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Ayşe"
-            className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            className="min-w-0 flex-1 rounded-md border border-neutral-300 px-3 py-2 text-base"
           />
           <button
             type="submit"
             disabled={loading || !name.trim()}
-            className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
+            className="shrink-0 rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
           >
             {loading ? "…" : "Continue"}
           </button>
         </div>
       </form>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-center text-sm text-red-600">{error}</p>}
     </div>
   );
 }

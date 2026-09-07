@@ -13,16 +13,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Match case-insensitively so "Murat", "murat", and "MURAT" all land on
-  // the same account instead of silently forking into separate profiles —
-  // the unique constraint on User.name is case-sensitive at the DB level,
-  // so without this a typo in casing would look like data loss to the user.
-  const existing = await prisma.user.findFirst({
-    where: { name: { equals: trimmed, mode: "insensitive" } },
-  });
-  const user = existing ?? (await prisma.user.create({ data: { name: trimmed } }));
+  try {
+    // Match case-insensitively so "Murat", "murat", and "MURAT" all land on
+    // the same account instead of silently forking into separate profiles —
+    // the unique constraint on User.name is case-sensitive at the DB level,
+    // so without this a typo in casing would look like data loss to the user.
+    const existing = await prisma.user.findFirst({
+      where: { name: { equals: trimmed, mode: "insensitive" } },
+    });
+    const user = existing ?? (await prisma.user.create({ data: { name: trimmed } }));
 
-  await createSession(user.id);
+    await createSession(user.id);
 
-  return NextResponse.json({ userId: user.id });
+    return NextResponse.json({ userId: user.id });
+  } catch (err) {
+    // An unhandled throw here (e.g. the DB rejecting the connection) leaves
+    // Next.js to write a bare 500 with no body, which makes res.json() throw
+    // "Unexpected end of JSON input" on the client instead of a clear error.
+    console.error("[auth/login] failed:", err);
+    return NextResponse.json(
+      { error: "Could not reach the database. Please try again in a moment." },
+      { status: 500 }
+    );
+  }
 }

@@ -98,7 +98,7 @@ export default async function ProgressPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Time on site" value={formatMinutes(totalMinutes)} />
         <StatCard label="Exams completed" value={String(attempts.length)} />
         <StatCard label="Words known" value={`${knownCount} / ${totalTracked}`} />
