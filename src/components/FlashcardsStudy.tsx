@@ -10,6 +10,7 @@ type FlashCard = {
   article: string | null;
   exampleSentence: string | null;
   meaning: string | null;
+  translationTr: string | null;
   plural: string | null;
   pastParticiple: string | null;
   auxiliaryVerb: string | null;
@@ -157,6 +158,15 @@ export default function FlashcardsStudy() {
                 ) : (
                   <p className="text-sm text-neutral-400">No meaning saved yet</p>
                 )}
+
+                <p className="text-sm text-blue-700">
+                  Türkçe:{" "}
+                  {cards[index].translationTr ? (
+                    <span className="font-medium">{cards[index].translationTr}</span>
+                  ) : (
+                    <span className="text-neutral-400">unbekannt</span>
+                  )}
+                </p>
 
                 {cards[index].wordType === "noun" && (
                   <p className="text-sm text-neutral-600">

@@ -7,6 +7,7 @@ export type FlashCard = {
   article: string | null;
   exampleSentence: string | null;
   meaning: string | null;
+  translationTr: string | null;
   plural: string | null;
   pastParticiple: string | null;
   auxiliaryVerb: string | null;
@@ -121,6 +122,7 @@ export async function getStudyQueue(userId: string, limit = 20): Promise<FlashCa
       article: source!.article,
       exampleSentence: source!.exampleSentence,
       meaning: source!.meaning,
+      translationTr: source!.translationTr,
       plural: source!.plural,
       pastParticiple: source!.pastParticiple,
       auxiliaryVerb: source!.auxiliaryVerb,
