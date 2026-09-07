@@ -40,7 +40,11 @@ async function enrichBatch(
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-5",
-    max_tokens: 4000,
+    max_tokens: 8000,
+    // Claude Sonnet 5 runs adaptive thinking by default, which can eat
+    // into max_tokens before it writes the answer — this is a bounded
+    // batch lookup, not deep reasoning, so keep effort low.
+    output_config: { effort: "low" },
     system:
       "You are a German lexicographer building flashcard content for CEFR B1 learners. Everything you write is in German — no English.",
     messages: [
