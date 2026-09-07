@@ -115,7 +115,11 @@ export async function addManualWord(
     try {
       const response = await anthropic.messages.create({
         model: EXAM_GENERATION_MODEL,
-        max_tokens: 500,
+        max_tokens: 2000,
+        // Claude Sonnet 5 runs adaptive thinking by default, which can eat
+        // into max_tokens before it writes the answer — this is a small
+        // lookup task, not deep reasoning, so keep effort low.
+        output_config: { effort: "low" },
         system:
           "You are a German lexicographer helping a B1 learner build flashcards. Everything you write is in German — no English.",
         messages: [

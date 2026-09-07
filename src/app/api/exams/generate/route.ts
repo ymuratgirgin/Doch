@@ -58,7 +58,12 @@ async function generateSection(
   context: { weakAreasText: string; vocabText: string }
 ): Promise<GeneratedPart[]> {
   const group = SECTION_GROUPS[groupKey];
-  const maxTokens = groupKey === "writing" || groupKey === "speaking" ? 3000 : 8000;
+  // Claude Sonnet 5 runs adaptive thinking by default, which eats into
+  // max_tokens before the model ever writes the JSON answer — these
+  // budgets leave headroom for that on top of the actual output (reading/
+  // listening/grammar in particular need room for several invented
+  // passages plus questions).
+  const maxTokens = groupKey === "writing" || groupKey === "speaking" ? 6000 : 16000;
 
   const userMessage = [
     "--- SPECIFICATION ---",
@@ -82,6 +87,10 @@ async function generateSection(
         max_tokens: maxTokens,
         system: EXAM_GENERATION_PROMPT,
         messages: [{ role: "user", content: userMessage }],
+        // Bound thinking depth so it can't consume the whole max_tokens
+        // budget before the model writes the JSON — this is a
+        // well-specified structured-generation task, not deep reasoning.
+        output_config: { effort: "medium" },
       },
       { timeout: ANTHROPIC_CALL_TIMEOUT_MS }
     );
@@ -92,7 +101,9 @@ async function generateSection(
 
   const textBlock = response.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") {
-    throw new Error(`Model returned no text content for section "${groupKey}"`);
+    throw new Error(
+      `Model returned no text content for section "${groupKey}" (stop_reason: ${response.stop_reason})`
+    );
   }
 
   let parsed: GeneratedSectionResponse;
