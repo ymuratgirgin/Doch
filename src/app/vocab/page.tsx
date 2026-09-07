@@ -1,19 +1,29 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export default async function VocabPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; level?: string }>;
+  searchParams: Promise<{ q?: string; level?: string; letter?: string }>;
 }) {
-  const { q, level } = await searchParams;
+  const { q, level, letter } = await searchParams;
+
+  const wordFilter =
+    q || letter
+      ? {
+          ...(q ? { contains: q } : {}),
+          ...(letter ? { startsWith: letter, mode: "insensitive" as const } : {}),
+        }
+      : undefined;
 
   const words = await prisma.vocabWord.findMany({
     where: {
       level: level || undefined,
-      ...(q ? { word: { contains: q } } : {}),
+      ...(wordFilter ? { word: wordFilter } : {}),
     },
     orderBy: { word: "asc" },
-    take: 200,
   });
 
   return (
@@ -21,7 +31,7 @@ export default async function VocabPage({
       <div>
         <h1 className="text-2xl font-semibold">Vocabulary</h1>
         <p className="mt-1 text-neutral-600">
-          {words.length} word{words.length === 1 ? "" : "s"} shown (max 200).
+          {words.length} word{words.length === 1 ? "" : "s"}.
         </p>
       </div>
 
@@ -41,6 +51,30 @@ export default async function VocabPage({
         </button>
       </form>
 
+      <div className="flex flex-wrap gap-1 text-sm">
+        <Link
+          href="/vocab"
+          className={`rounded-md px-2 py-1 ${
+            !letter ? "bg-blue-200 font-semibold text-blue-900" : "text-blue-700 hover:bg-blue-50"
+          }`}
+        >
+          All
+        </Link>
+        {ALPHABET.map((l) => (
+          <Link
+            key={l}
+            href={`/vocab?letter=${l}`}
+            className={`rounded-md px-2 py-1 ${
+              letter?.toUpperCase() === l
+                ? "bg-blue-200 font-semibold text-blue-900"
+                : "text-blue-700 hover:bg-blue-50"
+            }`}
+          >
+            {l}
+          </Link>
+        ))}
+      </div>
+
       {words.length === 0 ? (
         <p className="rounded-md border border-neutral-200 bg-white px-4 py-6 text-center text-neutral-500">
           No vocabulary loaded yet. Seed the database from your Telc/Goethe
@@ -53,8 +87,8 @@ export default async function VocabPage({
               <tr>
                 <th className="px-4 py-2">Word</th>
                 <th className="px-4 py-2">Type</th>
+                <th className="px-4 py-2">Türkçe</th>
                 <th className="px-4 py-2">Example</th>
-                <th className="px-4 py-2">Topic</th>
               </tr>
             </thead>
             <tbody>
@@ -64,8 +98,8 @@ export default async function VocabPage({
                     {[w.article, w.word].filter(Boolean).join(" ")}
                   </td>
                   <td className="px-4 py-2 text-neutral-500">{w.wordType}</td>
+                  <td className="px-4 py-2 text-blue-700">{w.translationTr}</td>
                   <td className="px-4 py-2 italic text-neutral-600">{w.exampleSentence}</td>
-                  <td className="px-4 py-2 text-neutral-500">{w.topic}</td>
                 </tr>
               ))}
             </tbody>

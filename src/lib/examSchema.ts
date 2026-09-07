@@ -137,6 +137,7 @@ export type WritingEvaluation = {
     correct: boolean;
     exampleSentence: string;
     meaning?: string;
+    translationTr?: string;
     plural?: string;
     pastParticiple?: string;
     auxiliaryVerb?: string;
@@ -224,11 +225,15 @@ fragments like "65 m²", "650 € warm", "ab sofort", "z. B.", "inkl."), and a
 contact line ("Tel. 030-1234567" or similar). For example:
 "a) Gemütliche 2-Zimmer-Wohnung\\nZentrum, 65 m², ab sofort frei\\n650 € warm, Tel. 030-1234567"
 
-For the Schriftlicher Ausdruck (WRITING) question's "prompt", write a short
-intro sentence, then put each of the four Leitpunkte on its own line
-prefixed with "- " (using "\\n" between lines) instead of inlining them into
-one paragraph — e.g.:
+The Schriftlicher Ausdruck (WRITING) part must have EXACTLY ONE question in
+its "questions" array — the real exam is one reply letter/email covering
+all four Leitpunkte, not four separate answers, so it must never be split
+into multiple questions. That single question's "prompt" should be a short
+intro sentence, then each of the four Leitpunkte on its own line prefixed
+with "- " (using "\\n" between lines) instead of inlining them into one
+paragraph — e.g.:
 "Antworten Sie Sabine. Gehen Sie auf folgende vier Punkte ein:\\n- Sagen Sie, ob Sie am Samstag Zeit haben.\\n- Schreiben Sie, ob Sie ein Auto haben.\\n- Geben Sie einen Tipp, wo man Kartons bekommt.\\n- Sagen Sie, ob Sie zur Feier kommen."
+Its "questionType" must be "free_text".
 `;
 
 export const WRITING_EVALUATION_INSTRUCTIONS = `
@@ -249,6 +254,7 @@ this TypeScript shape:
       "correct": boolean, // was it used correctly (form, meaning, context)?
       "exampleSentence": string, // a clean German example (their own if correct, a corrected one if not)
       "meaning"?: string, // short German definition/paraphrase of the word
+      "translationTr"?: string, // Turkish translation of the word (dictionary form)
       "plural"?: string, // nouns only: plural form without the article
       "pastParticiple"?: string, // verbs only: Partizip II
       "auxiliaryVerb"?: string, // verbs only: "haben" | "sein" (Perfekt auxiliary)
@@ -265,6 +271,7 @@ their personal vocabulary record.
 
 Write "explanation", "exampleSentence", "meaning", "note", and
 "overallFeedback" all in German — no English translations or glosses.
+"translationTr" is the one exception: give the Turkish translation there.
 `;
 
 export const SPEAKING_EVALUATION_INSTRUCTIONS = `
