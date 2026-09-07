@@ -223,6 +223,12 @@ headline/title line, a details line (size, price, dates — using realistic
 fragments like "65 m²", "650 € warm", "ab sofort", "z. B.", "inkl."), and a
 contact line ("Tel. 030-1234567" or similar). For example:
 "a) Gemütliche 2-Zimmer-Wohnung\\nZentrum, 65 m², ab sofort frei\\n650 € warm, Tel. 030-1234567"
+
+For the Schriftlicher Ausdruck (WRITING) question's "prompt", write a short
+intro sentence, then put each of the four Leitpunkte on its own line
+prefixed with "- " (using "\\n" between lines) instead of inlining them into
+one paragraph — e.g.:
+"Antworten Sie Sabine. Gehen Sie auf folgende vier Punkte ein:\\n- Sagen Sie, ob Sie am Samstag Zeit haben.\\n- Schreiben Sie, ob Sie ein Auto haben.\\n- Geben Sie einen Tipp, wo man Kartons bekommt.\\n- Sagen Sie, ob Sie zur Feier kommen."
 `;
 
 export const WRITING_EVALUATION_INSTRUCTIONS = `
