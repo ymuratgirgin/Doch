@@ -65,9 +65,15 @@ async function generateSection(
   // passages plus questions).
   const maxTokens = groupKey === "writing" || groupKey === "speaking" ? 6000 : 16000;
 
-  const userMessage = [
-    "--- SPECIFICATION ---",
-    TELC_B1_SPEC,
+  // The spec is identical on every call regardless of mode, groupKey, or
+  // user — split it into its own content block with a cache breakpoint so
+  // repeated generations (including the 4 parallel calls a "full" mock
+  // fires off) pay full price for it once per TTL window instead of every
+  // single call. Everything after the breakpoint (task/mode-specific
+  // instructions, weak areas, the randomized vocab sample) stays outside
+  // the cached prefix since it varies per call.
+  const specBlock = `--- SPECIFICATION ---\n\n${TELC_B1_SPEC}`;
+  const taskBlock = [
     "--- TASK ---",
     `Generate ONLY this section of the exam: ${group.label}.`,
     `Produce exactly these Teil(e), each as one part in the "parts" array, in this order: ${group.teils.join(", ")}.`,
@@ -86,7 +92,15 @@ async function generateSection(
         model: EXAM_GENERATION_MODEL,
         max_tokens: maxTokens,
         system: EXAM_GENERATION_PROMPT,
-        messages: [{ role: "user", content: userMessage }],
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: specBlock, cache_control: { type: "ephemeral" } },
+              { type: "text", text: taskBlock },
+            ],
+          },
+        ],
         // Bound thinking depth so it can't consume the whole max_tokens
         // budget before the model writes the JSON — this is a
         // well-specified structured-generation task, not deep reasoning.
@@ -98,6 +112,11 @@ async function generateSection(
     const reason = err instanceof Error ? err.message : String(err);
     throw new Error(`Generating "${groupKey}" failed: ${reason}`);
   }
+
+  // Visible in Vercel's function logs — cache_read_input_tokens > 0 on a
+  // repeat call confirms the spec is actually being served from cache
+  // rather than re-billed at full price every time.
+  console.log(`[exam-generate] section=${groupKey} usage=`, response.usage);
 
   const textBlock = response.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") {

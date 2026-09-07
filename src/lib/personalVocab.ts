@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { anthropic, EXAM_GENERATION_MODEL } from "@/lib/anthropic";
+import { anthropic, LOOKUP_MODEL } from "@/lib/anthropic";
 import { extractJson, type WritingEvaluation } from "@/lib/examSchema";
 
 type WordDetails = {
@@ -114,12 +114,12 @@ export async function addManualWord(
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       const response = await anthropic.messages.create({
-        model: EXAM_GENERATION_MODEL,
+        // A single word's definition/example doesn't need Sonnet-level
+        // judgment — Haiku 4.5 runs no thinking by default (unlike
+        // Sonnet 5) and doesn't support output_config.effort, so there's
+        // no budget tuning needed here.
+        model: LOOKUP_MODEL,
         max_tokens: 2000,
-        // Claude Sonnet 5 runs adaptive thinking by default, which can eat
-        // into max_tokens before it writes the answer — this is a small
-        // lookup task, not deep reasoning, so keep effort low.
-        output_config: { effort: "low" },
         system:
           "You are a German lexicographer helping a B1 learner build flashcards. Everything you write is in German — no English.",
         messages: [
