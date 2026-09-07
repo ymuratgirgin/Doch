@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { computePassEstimate } from "@/lib/passEstimate";
+import { resolveMatchingAnswer } from "@/lib/matching";
 const CRITERION_LABELS: Record<string, string> = {
   aufgabenbewaeltigung: "Aufgabenbewältigung",
   kommunikativeGestaltung: "Kommunikative Gestaltung",
@@ -83,13 +84,26 @@ export default async function ResultsPage({
                   {i + 1}. {q.prompt}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">
-                  Your answer: {answer?.responseText || <em>No answer</em>}
+                  Your answer:{" "}
+                  {answer?.responseText ? (
+                    q.questionType === "matching"
+                      ? resolveMatchingAnswer(answer.responseText, q.options)
+                      : answer.responseText
+                  ) : (
+                    <em>No answer</em>
+                  )}
                 </p>
 
                 {answer?.isCorrect !== null && answer?.isCorrect !== undefined && (
                   <p className={`mt-1 text-sm ${answer.isCorrect ? "text-green-600" : "text-red-600"}`}>
                     {answer.isCorrect ? "Correct" : "Incorrect"}
-                    {!answer.isCorrect && q.correctAnswer && ` — expected: ${q.correctAnswer}`}
+                    {!answer.isCorrect &&
+                      q.correctAnswer &&
+                      ` — expected: ${
+                        q.questionType === "matching"
+                          ? resolveMatchingAnswer(q.correctAnswer, q.options)
+                          : q.correctAnswer
+                      }`}
                   </p>
                 )}
 

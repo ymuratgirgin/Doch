@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { resolveMatchingAnswer } from "@/lib/matching";
 
 export default async function MistakesPage() {
   const user = await requireUser();
@@ -55,9 +56,22 @@ export default async function MistakesPage() {
                 <div key={a.id} className="rounded-lg border border-neutral-200 bg-white p-4">
                   <p className="text-sm font-medium">{a.question.prompt}</p>
                   <p className="mt-1 text-sm text-neutral-600">
-                    Your answer: {a.responseText || <em>No answer</em>}
+                    Your answer:{" "}
+                    {a.responseText ? (
+                      a.question.questionType === "matching"
+                        ? resolveMatchingAnswer(a.responseText, a.question.options)
+                        : a.responseText
+                    ) : (
+                      <em>No answer</em>
+                    )}
                     {a.question.correctAnswer && (
-                      <> — correct: {a.question.correctAnswer}</>
+                      <>
+                        {" "}
+                        — correct:{" "}
+                        {a.question.questionType === "matching"
+                          ? resolveMatchingAnswer(a.question.correctAnswer, a.question.options)
+                          : a.question.correctAnswer}
+                      </>
                     )}
                   </p>
                   {a.grammarExplanation && (

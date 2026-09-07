@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { COOKIE_NAME } from "@/lib/session";
 
-const PUBLIC_PATHS = ["/login"];
+// "/" doubles as the landing page: it shows the login form itself when
+// signed out, so it must stay reachable without a session cookie.
+const PUBLIC_PATHS = ["/"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -16,7 +18,7 @@ export function proxy(request: NextRequest) {
 
   const userId = request.cookies.get(COOKIE_NAME)?.value;
   if (!userId) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/", request.url);
     return NextResponse.redirect(loginUrl);
   }
 

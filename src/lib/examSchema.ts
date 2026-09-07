@@ -188,7 +188,17 @@ ads as the "options" of a single synthetic question per situation/text, OR
 — simpler and preferred — emit one question per text/situation with
 "questionType": "matching", "options" containing the full lettered list
 (headlines a-j, or ads a-l plus "x"), and "correctAnswer" the correct
-letter (or "x").
+letter (or "x"). The "options" array must be IDENTICAL (same strings, same
+order) across every situation/question in the group — it's one shared list
+of ads/headlines being matched against, not a per-question list.
+
+For Leseverstehen Teil 3 specifically, each ad option must read like a real
+classified ad/flyer, not a single flat sentence: start with the letter
+prefix ("a) "), then use "\\n" to break it into 2-3 short lines — a
+headline/title line, a details line (size, price, dates — using realistic
+fragments like "65 m²", "650 € warm", "ab sofort", "z. B.", "inkl."), and a
+contact line ("Tel. 030-1234567" or similar). For example:
+"a) Gemütliche 2-Zimmer-Wohnung\\nZentrum, 65 m², ab sofort frei\\n650 € warm, Tel. 030-1234567"
 `;
 
 export const WRITING_EVALUATION_INSTRUCTIONS = `

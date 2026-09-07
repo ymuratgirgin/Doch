@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import { getCurrentUser } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
+import MobileNav from "@/components/MobileNav";
 import ActivityHeartbeat from "@/components/ActivityHeartbeat";
 import "./globals.css";
 
@@ -38,13 +39,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-white text-neutral-900">
         {user && <ActivityHeartbeat />}
-        <header className="border-b border-blue-100 bg-blue-50">
+        <header className="relative border-b border-blue-100 bg-blue-50">
           <div className="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3">
             <Link href="/" className="text-lg font-bold text-blue-900 hover:text-orange-500">
               Doch!
             </Link>
             {user && (
-              <nav className="flex flex-1 gap-5 text-sm">
+              <nav className="hidden flex-1 gap-5 text-sm sm:flex">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
@@ -57,9 +58,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               </nav>
             )}
             {user && (
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-blue-700">{user.name}</span>
-                <LogoutButton />
+              <div className="ml-auto flex items-center gap-3 text-sm">
+                <div className="hidden items-center gap-3 sm:flex">
+                  <span className="text-blue-700">{user.name}</span>
+                  <LogoutButton />
+                </div>
+                <MobileNav navLinks={navLinks} userName={user.name} />
               </div>
             )}
           </div>
