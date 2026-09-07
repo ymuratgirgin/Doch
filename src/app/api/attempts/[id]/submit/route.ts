@@ -38,6 +38,10 @@ async function callModel(system: string, userMessage: string, maxTokens: number)
         max_tokens: maxTokens,
         system,
         messages: [{ role: "user", content: userMessage }],
+        // Claude Sonnet 5 runs adaptive thinking by default, which can eat
+        // into max_tokens before the model writes the JSON answer — bound
+        // it since grading is rubric-following, not deep reasoning.
+        output_config: { effort: "low" },
       },
       { timeout: ANTHROPIC_CALL_TIMEOUT_MS }
     );
@@ -144,7 +148,7 @@ export async function POST(
         JSON.stringify(wrongForExplanation, null, 2),
         MISTAKE_EXPLANATION_INSTRUCTIONS,
       ].join("\n\n"),
-      4000
+      8000
     );
     const explanations = (Array.isArray(result) ? result : []) as MistakeExplanation[];
     const byId = new Map(explanations.map((e) => [e.questionId, e]));
@@ -186,7 +190,7 @@ export async function POST(
           `Learner's transcript: ${fa.responseText}`,
           SPEAKING_EVALUATION_INSTRUCTIONS,
         ].join("\n\n"),
-        3000
+        6000
       );
       const evaluation = result as SpeakingEvaluation | null;
       if (!evaluation) {
@@ -223,7 +227,7 @@ export async function POST(
         `Learner's answer: ${fa.responseText}`,
         WRITING_EVALUATION_INSTRUCTIONS,
       ].join("\n\n"),
-      4000
+      8000
     );
 
     const evaluation = result as WritingEvaluation | null;
