@@ -3,6 +3,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { computePassEstimate } from "@/lib/passEstimate";
+import { resolveMatchingAnswer } from "@/lib/matching";
+import { getItemNumber } from "@/lib/examSchema";
 const CRITERION_LABELS: Record<string, string> = {
   aufgabenbewaeltigung: "Aufgabenbewältigung",
   kommunikativeGestaltung: "Kommunikative Gestaltung",
@@ -77,19 +79,37 @@ export default async function ResultsPage({
               ? JSON.parse(answer.criteriaJson)
               : null;
 
+            // Real telc item number from the blueprint (spec §3.1-3.6),
+            // not a locally-restarted index — Sprachbausteine prompts are
+            // just the gap's number as text (e.g. "21"), so showing both
+            // would duplicate it.
+            const itemNumber = getItemNumber(part.teilLabel, i);
+            const numberLabel = part.type === "GRAMMAR" ? `${itemNumber}.` : `${itemNumber}. ${q.prompt}`;
+
             return (
               <div key={q.id} className="rounded-lg border border-neutral-200 bg-white p-4">
-                <p className="text-sm font-medium">
-                  {i + 1}. {q.prompt}
-                </p>
+                <p className="text-sm font-medium">{numberLabel}</p>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">
-                  Your answer: {answer?.responseText || <em>No answer</em>}
+                  Your answer:{" "}
+                  {answer?.responseText ? (
+                    q.questionType === "matching"
+                      ? resolveMatchingAnswer(answer.responseText, q.options)
+                      : answer.responseText
+                  ) : (
+                    <em>No answer</em>
+                  )}
                 </p>
 
                 {answer?.isCorrect !== null && answer?.isCorrect !== undefined && (
                   <p className={`mt-1 text-sm ${answer.isCorrect ? "text-green-600" : "text-red-600"}`}>
                     {answer.isCorrect ? "Correct" : "Incorrect"}
-                    {!answer.isCorrect && q.correctAnswer && ` — expected: ${q.correctAnswer}`}
+                    {!answer.isCorrect &&
+                      q.correctAnswer &&
+                      ` — expected: ${
+                        q.questionType === "matching"
+                          ? resolveMatchingAnswer(q.correctAnswer, q.options)
+                          : q.correctAnswer
+                      }`}
                   </p>
                 )}
 

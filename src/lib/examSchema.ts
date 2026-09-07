@@ -39,6 +39,30 @@ export const TEIL_POINTS: Record<string, number> = {
 export const WRITING_TEIL_LABEL = "Schriftlicher Ausdruck";
 export const WRITING_MAX_POINTS = 45;
 
+// The telc B1 blueprint numbers items 1-60 continuously across the whole
+// exam (spec §3.1-3.6) — each Teil owns a fixed sub-range. Question rows
+// only know their order *within their own part* (0-based), so item numbers
+// shown to the learner must be computed from this offset, not just
+// restarted at 1 per part (which doesn't match the real exam) or trusted
+// from model-generated prompt text (which can drift/hallucinate).
+const TEIL_ITEM_START: Record<string, number> = {
+  "Leseverstehen Teil 1": 1,
+  "Leseverstehen Teil 2": 6,
+  "Leseverstehen Teil 3": 11,
+  "Sprachbausteine Teil 1": 21,
+  "Sprachbausteine Teil 2": 31,
+  "Hörverstehen Teil 1": 41,
+  "Hörverstehen Teil 2": 46,
+  "Hörverstehen Teil 3": 56,
+};
+
+// Falls back to a plain 1-based index (indexInPart + 1) for parts with no
+// fixed blueprint numbering (Writing, Speaking).
+export function getItemNumber(teilLabel: string | null | undefined, indexInPart: number): number {
+  const start = teilLabel ? TEIL_ITEM_START[teilLabel] : undefined;
+  return start !== undefined ? start + indexInPart : indexInPart + 1;
+}
+
 // Solo-adapted Mündlicher Ausdruck (spec §3.8 is a paired oral exam; we
 // adapt each Teil to a monologue). Official per-criterion caps are
 // Ausdrucksfähigkeit/Aufgabenbewältigung/Formale Richtigkeit/Aussprache at
@@ -188,7 +212,17 @@ ads as the "options" of a single synthetic question per situation/text, OR
 — simpler and preferred — emit one question per text/situation with
 "questionType": "matching", "options" containing the full lettered list
 (headlines a-j, or ads a-l plus "x"), and "correctAnswer" the correct
-letter (or "x").
+letter (or "x"). The "options" array must be IDENTICAL (same strings, same
+order) across every situation/question in the group — it's one shared list
+of ads/headlines being matched against, not a per-question list.
+
+For Leseverstehen Teil 3 specifically, each ad option must read like a real
+classified ad/flyer, not a single flat sentence: start with the letter
+prefix ("a) "), then use "\\n" to break it into 2-3 short lines — a
+headline/title line, a details line (size, price, dates — using realistic
+fragments like "65 m²", "650 € warm", "ab sofort", "z. B.", "inkl."), and a
+contact line ("Tel. 030-1234567" or similar). For example:
+"a) Gemütliche 2-Zimmer-Wohnung\\nZentrum, 65 m², ab sofort frei\\n650 € warm, Tel. 030-1234567"
 `;
 
 export const WRITING_EVALUATION_INSTRUCTIONS = `
