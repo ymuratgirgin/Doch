@@ -39,6 +39,30 @@ export const TEIL_POINTS: Record<string, number> = {
 export const WRITING_TEIL_LABEL = "Schriftlicher Ausdruck";
 export const WRITING_MAX_POINTS = 45;
 
+// The telc B1 blueprint numbers items 1-60 continuously across the whole
+// exam (spec §3.1-3.6) — each Teil owns a fixed sub-range. Question rows
+// only know their order *within their own part* (0-based), so item numbers
+// shown to the learner must be computed from this offset, not just
+// restarted at 1 per part (which doesn't match the real exam) or trusted
+// from model-generated prompt text (which can drift/hallucinate).
+const TEIL_ITEM_START: Record<string, number> = {
+  "Leseverstehen Teil 1": 1,
+  "Leseverstehen Teil 2": 6,
+  "Leseverstehen Teil 3": 11,
+  "Sprachbausteine Teil 1": 21,
+  "Sprachbausteine Teil 2": 31,
+  "Hörverstehen Teil 1": 41,
+  "Hörverstehen Teil 2": 46,
+  "Hörverstehen Teil 3": 56,
+};
+
+// Falls back to a plain 1-based index (indexInPart + 1) for parts with no
+// fixed blueprint numbering (Writing, Speaking).
+export function getItemNumber(teilLabel: string | null | undefined, indexInPart: number): number {
+  const start = teilLabel ? TEIL_ITEM_START[teilLabel] : undefined;
+  return start !== undefined ? start + indexInPart : indexInPart + 1;
+}
+
 // Solo-adapted Mündlicher Ausdruck (spec §3.8 is a paired oral exam; we
 // adapt each Teil to a monologue). Official per-criterion caps are
 // Ausdrucksfähigkeit/Aufgabenbewältigung/Formale Richtigkeit/Aussprache at

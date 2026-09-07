@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ListeningPlayer from "@/components/ListeningPlayer";
 import SpeakingRecorder from "@/components/SpeakingRecorder";
 import { parseMatchingOption } from "@/lib/matching";
+import { getItemNumber } from "@/lib/examSchema";
 
 type Question = {
   id: string;
@@ -253,7 +254,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
               return buildRenderBlocks(part.questions).map((block) => {
                 if (block.kind === "matching") {
                   const parsedOptions = block.options.map(parseMatchingOption);
-                  const startNumber = questionNumber + 1;
+                  const startNumber = getItemNumber(part.teilLabel, questionNumber);
                   questionNumber += block.situations.length;
                   return (
                     <div key={block.situations[0].id} className="space-y-4">
@@ -298,13 +299,18 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                 }
 
                 const q = block.question;
-                const i = questionNumber++;
+                const itemNumber = getItemNumber(part.teilLabel, questionNumber);
+                questionNumber++;
                 const options = q.options ? (JSON.parse(q.options) as string[]) : null;
+                // Sprachbausteine prompts are just the gap's item number as
+                // text (e.g. "21") — since we compute the real number
+                // ourselves from the blueprint, showing the prompt too
+                // would just duplicate it.
+                const numberLabel =
+                  part.type === "GRAMMAR" ? `${itemNumber}.` : `${itemNumber}. ${q.prompt}`;
                 return (
                   <div key={q.id}>
-                    <p className="text-sm font-medium">
-                      {i + 1}. {q.prompt}
-                    </p>
+                    <p className="text-sm font-medium">{numberLabel}</p>
                     {part.type === "SPEAKING" ? (
                       <div className="mt-2">
                         <SpeakingRecorder
