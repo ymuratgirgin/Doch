@@ -38,21 +38,21 @@ model ActivitySession {
 // --- Vocabulary -------------------------------------------------------
 
 model VocabWord {
-  id              String   @id @default(cuid())
-  word            String
-  wordType        String? // noun / verb / adjective / etc.
-  article         String? // der/die/das for nouns
-  translationTr   String? // Turkish translation, shown on flashcard reveal
-  exampleSentence String?
-  meaning         String? // short German definition/paraphrase, shown on flashcard reveal
-  plural          String? // nouns only: plural form without the article
-  pastParticiple  String? // verbs only: Partizip II
-  auxiliaryVerb   String? // verbs only: "haben" | "sein" (Perfekt auxiliary)
-  praeteritum     String? // verbs only: 3rd person singular Präteritum form
-  level           String   @default("B1") // A1..C1
-  source          String? // "telc" | "goethe" | ...
-  topic           String? // thematic grouping, e.g. "Arbeit", "Reisen"
-  createdAt       DateTime @default(now())
+  id               String   @id @default(cuid())
+  word             String
+  wordType         String? // noun / verb / adjective / etc.
+  article          String? // der/die/das for nouns
+  translationTr    String? // Turkish translation, shown on flashcard reveal
+  exampleSentences String[] @default([]) // curated in data/B1_cleaned.json, synced by prisma/seed.ts
+  meaning          String? // short German definition/paraphrase, shown on flashcard reveal
+  plural           String? // nouns only: plural form without the article
+  pastParticiple   String? // verbs only: Partizip II
+  auxiliaryVerb    String? // verbs only: "haben" | "sein" (Perfekt auxiliary)
+  praeteritum      String? // verbs only: 3rd person singular Präteritum form
+  level            String   @default("B1") // A1..C1
+  source           String? // "telc" | "goethe" | ...
+  topic            String? // thematic grouping, e.g. "Arbeit", "Reisen"
+  createdAt        DateTime @default(now())
 
   progress UserVocabProgress[]
 
@@ -123,15 +123,15 @@ enum ExamPartType {
 }
 
 model Exam {
-  id          String   @id @default(cuid())
-  title       String
-  level       String   @default("B1")
-  examMode    String   @default("full") // "full" | "reading" | "listening" | "writing" | "grammar" | "speaking"
+  id                String   @id @default(cuid())
+  title             String
+  level             String   @default("B1")
+  examMode          String   @default("full") // "full" | "reading" | "listening" | "writing" | "grammar" | "speaking"
   timeBudgetMinutes Int? // countdown shown while taking the exam, per spec timing
-  createdAt   DateTime @default(now())
-  generatedBy String   @default("llm") // "llm" | "template"
-  promptSpec  String? // snapshot of the spec/prompt used to generate this exam
-  focusAreas  String? // JSON array of weak-area tags this exam was targeted at
+  createdAt         DateTime @default(now())
+  generatedBy       String   @default("llm") // "llm" | "template"
+  promptSpec        String? // snapshot of the spec/prompt used to generate this exam
+  focusAreas        String? // JSON array of weak-area tags this exam was targeted at
 
   parts    ExamPart[]
   attempts Attempt[]
@@ -189,18 +189,18 @@ model Attempt {
 }
 
 model Answer {
-  id                String   @id @default(cuid())
-  attemptId         String
-  attempt           Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId        String
-  question          Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  responseText      String?
-  isCorrect         Boolean?
-  scoreAwarded      Float? // points actually awarded, out of question.maxPoints
-  feedback          String? // short per-answer LLM feedback
-  grammarTopic      String? // normalized tag for aggregating weak areas, e.g. "Dativpräpositionen"
+  id                 String   @id @default(cuid())
+  attemptId          String
+  attempt            Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId         String
+  question           Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  responseText       String?
+  isCorrect          Boolean?
+  scoreAwarded       Float? // points actually awarded, out of question.maxPoints
+  feedback           String? // short per-answer LLM feedback
+  grammarTopic       String? // normalized tag for aggregating weak areas, e.g. "Dativpräpositionen"
   grammarExplanation String? // grammar rule explanation + 2-3 examples, for the mistake-review page
-  criteriaJson      String? // writing only: {"aufgabenbewaeltigung": {"grade":"B","points":3}, ...}
+  criteriaJson       String? // writing only: {"aufgabenbewaeltigung": {"grade":"B","points":3}, ...}
 
   @@unique([attemptId, questionId])
 }

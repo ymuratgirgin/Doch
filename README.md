@@ -15,10 +15,6 @@ learner's vocabulary and progress over time.
 
 ## Status / what's still open
 
-- **Vocab enrichment.** The shared vocab bank (1,812 B1 words, seeded from
-  `data/B1_cleaned.json`) has no translations or example sentences yet —
-  run `npm run enrich-vocab` (needs `ANTHROPIC_API_KEY`) to fill them in
-  via Claude, in resumable batches.
 - **Auth is intentionally minimal.** Login is name-only, no password —
   fine for a small group of trusted testers, not for a public deployment.
 - **Speaking (mündlicher Ausdruck)** is a solo-adapted, text/voice-transcript
@@ -36,8 +32,9 @@ string they give you).
 npm install
 cp .env.example .env   # fill in DATABASE_URL (postgresql://...) and ANTHROPIC_API_KEY
 npx prisma migrate dev
-npx prisma db seed     # imports the B1 vocab list
-npm run enrich-vocab   # optional: adds translations + examples (needs API key)
+npx prisma db seed     # imports the B1 vocab list (Turkish translation + 2 example
+                        # sentences per word are curated in data/B1_cleaned.json —
+                        # no API key needed; re-run any time to sync content updates)
 npm run dev
 ```
 

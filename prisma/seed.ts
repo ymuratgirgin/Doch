@@ -1,7 +1,8 @@
 // Seeds the shared VocabWord bank from data/B1_cleaned.json — 1,812 B1
-// lemmas scraped from DWDS. That file has no translations or example
-// sentences; those are filled in afterwards by scripts/enrich-vocab.ts.
-// Safe to re-run: uses createMany with skipDuplicates.
+// lemmas scraped from DWDS, curated with a Turkish translation and two
+// German example sentences per word. Safe to re-run: upserts by the
+// (word, wordType, level) unique key, so it both adds new words and syncs
+// updated content (a corrected translation, say) into already-seeded rows.
 
 import { readFileSync } from "fs";
 import path from "path";
@@ -21,6 +22,8 @@ type SourceEntry = {
   homograph_index: number | null;
   source_url: string;
   meaning?: string | null;
+  translationTr?: string | null;
+  exampleSentences?: string[];
   plural?: string | null;
   pastParticiple?: string | null;
   auxiliaryVerb?: string | null;
@@ -56,18 +59,30 @@ async function main() {
     level: "B1",
     source: "goethe-telc-dwds",
     meaning: e.meaning ?? null,
+    translationTr: e.translationTr ?? null,
+    exampleSentences: e.exampleSentences ?? [],
     plural: e.plural ?? null,
     pastParticiple: e.pastParticiple ?? null,
     auxiliaryVerb: e.auxiliaryVerb ?? null,
     praeteritum: e.praeteritum ?? null,
   }));
 
-  const result = await prisma.vocabWord.createMany({
-    data: rows,
-    skipDuplicates: true,
-  });
+  const CONCURRENCY = 20;
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    const chunk = rows.slice(i, i + CONCURRENCY);
+    await Promise.all(
+      chunk.map((row) =>
+        prisma.vocabWord.upsert({
+          where: { word_wordType_level: { word: row.word, wordType: row.wordType, level: row.level } },
+          create: row,
+          update: row,
+        })
+      )
+    );
+    console.log(`Synced ${Math.min(i + CONCURRENCY, rows.length)} / ${rows.length}...`);
+  }
 
-  console.log(`Inserted ${result.count} new vocab words (of ${rows.length} in source).`);
+  console.log(`Done. Synced ${rows.length} vocab words from source.`);
 }
 
 main()

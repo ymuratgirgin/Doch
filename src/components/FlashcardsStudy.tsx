@@ -8,7 +8,7 @@ type FlashCard = {
   word: string;
   wordType: string | null;
   article: string | null;
-  exampleSentence: string | null;
+  exampleSentences: string[];
   meaning: string | null;
   translationTr: string | null;
   plural: string | null;
@@ -192,10 +192,14 @@ export default function FlashcardsStudy() {
                   </p>
                 )}
 
-                {cards[index].exampleSentence && (
-                  <p className="text-sm italic text-neutral-500">
-                    {cards[index].exampleSentence}
-                  </p>
+                {cards[index].exampleSentences.length > 0 && (
+                  <div className="space-y-1">
+                    {cards[index].exampleSentences.map((s, i) => (
+                      <p key={i} className="text-sm italic text-neutral-500">
+                        {s}
+                      </p>
+                    ))}
+                  </div>
                 )}
               </div>
             ) : (
