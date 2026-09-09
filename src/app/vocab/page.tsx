@@ -23,8 +23,13 @@ export default async function VocabPage({
       level: level || undefined,
       ...(wordFilter ? { word: wordFilter } : {}),
     },
-    orderBy: { word: "asc" },
   });
+
+  // German nouns are capitalized and everything else isn't, so a plain SQL
+  // ORDER BY (byte/collation order, uppercase before lowercase) clusters all
+  // nouns before every other word type instead of a true A-Z listing. Sort
+  // case-insensitively with German collation rules instead.
+  words.sort((a, b) => a.word.localeCompare(b.word, "de", { sensitivity: "accent" }));
 
   return (
     <div className="space-y-6">
@@ -88,7 +93,7 @@ export default async function VocabPage({
                 <th className="px-4 py-2">Word</th>
                 <th className="px-4 py-2">Type</th>
                 <th className="px-4 py-2">Türkçe</th>
-                <th className="px-4 py-2">Example</th>
+                <th className="px-4 py-2">Examples</th>
               </tr>
             </thead>
             <tbody>
@@ -99,7 +104,11 @@ export default async function VocabPage({
                   </td>
                   <td className="px-4 py-2 text-neutral-500">{w.wordType}</td>
                   <td className="px-4 py-2 text-blue-700">{w.translationTr}</td>
-                  <td className="px-4 py-2 italic text-neutral-600">{w.exampleSentence}</td>
+                  <td className="px-4 py-2 italic text-neutral-600">
+                    {w.exampleSentences.map((s, i) => (
+                      <p key={i}>{s}</p>
+                    ))}
+                  </td>
                 </tr>
               ))}
             </tbody>
