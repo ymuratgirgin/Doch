@@ -23,7 +23,7 @@ const TREND_MODES: { mode: string; label: string }[] = [
 export default async function ProgressPage() {
   const user = await requireUser();
 
-  const [sessions, attempts, vocabCounts, passEstimate, streak, trendData] = await Promise.all([
+  const [sessions, attempts, vocabCounts, vocabBankSize, personalVocabSize, passEstimate, streak, trendData] = await Promise.all([
     prisma.activitySession.findMany({ where: { userId: user.id } }),
     prisma.attempt.findMany({
       where: { userId: user.id, submittedAt: { not: null } },
@@ -34,6 +34,8 @@ export default async function ProgressPage() {
       where: { userId: user.id },
       _count: true,
     }),
+    prisma.vocabWord.count({ where: { level: "B1" } }),
+    prisma.personalVocabWord.count({ where: { userId: user.id } }),
     computePassEstimate(user.id),
     computeStreak(user.id),
     Promise.all(
@@ -62,7 +64,12 @@ export default async function ProgressPage() {
 
   const knownCount = vocabCounts.find((v) => v.status === "known")?._count ?? 0;
   const learningCount = vocabCounts.find((v) => v.status === "learning")?._count ?? 0;
-  const totalTracked = vocabCounts.reduce((sum, v) => sum + v._count, 0);
+  // The size of the vocabulary available to this learner — not a count of
+  // UserVocabProgress rows, which only grows by up to 100 each time the
+  // flashcards queue happens to pull in a fresh batch (see getStudyQueue)
+  // and would otherwise show a number that depends on how many times
+  // someone opened the Flashcards page rather than the actual word count.
+  const totalTracked = vocabBankSize + personalVocabSize;
 
   return (
     <div className="space-y-8">
