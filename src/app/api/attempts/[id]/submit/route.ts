@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { anthropic, EXAM_GENERATION_MODEL } from "@/lib/anthropic";
 import { ANSWER_EVALUATION_PROMPT } from "@/lib/prompts";
 import { recordVocabUsage } from "@/lib/personalVocab";
+import { parseMatchingOption } from "@/lib/matching";
 import {
   MISTAKE_EXPLANATION_INSTRUCTIONS,
   MistakeExplanation,
@@ -136,10 +137,22 @@ export async function POST(
       continue;
     }
 
+    // The learner's stored answer is always the full option text (e.g.
+    // "b) Weil ihn ... fasziniert haben."), matching the "options" array —
+    // but nothing constrains whether the model writes "correctAnswer" as
+    // that same full text or just the bare letter ("b"), and it isn't
+    // consistent from one generation to the next. A raw string comparison
+    // silently marks every answer wrong whenever the model happens to use
+    // the bare-letter form. parseMatchingOption() strips a "b) " prefix
+    // when present and otherwise returns the trimmed string as-is, so
+    // comparing on its output normalizes both formats to the same thing
+    // without changing behavior for non-lettered answers (e.g. a typed
+    // "richtig"/"falsch"), which have no prefix to strip either way.
     const isCorrect =
       !!question.correctAnswer &&
       !!responseText.trim() &&
-      responseText.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
+      parseMatchingOption(responseText.trim()).letter.toLowerCase() ===
+        parseMatchingOption(question.correctAnswer.trim()).letter.toLowerCase();
 
     graded.push({
       questionId: question.id,
