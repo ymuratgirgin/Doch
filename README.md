@@ -87,10 +87,15 @@ Setting it swaps in real Google Cloud Text-to-Speech audio instead
 2. Under **APIs & Services → Credentials**, create an API key. Cloud TTS
    bills per character synthesized — a full mock exam's listening scripts
    run roughly 900-1,450 words (~6,000-9,000 characters), which costs well
-   under $0.15 per exam on the Neural2 voice this app uses (`de-DE-Neural2-B`
-   in `src/lib/tts.ts` — swap it for another
+   under $0.15 per exam on the Neural2 voices this app uses. Playback isn't
+   single-voice: per spec §3.6 the model labels each speaker
+   ("Herr Bauer:"/"Frau Klein:"), and `src/lib/tts.ts` assigns each one a
+   distinct, gender-matched voice from a small pool (`MALE_VOICES`/
+   `FEMALE_VOICES`) — so Teil 1's 5 different people and Teil 2's
+   interviewer/interviewee dialogue don't all come out of the same voice.
+   Edit those pools for a different
    [supported German voice](https://cloud.google.com/text-to-speech/docs/voices)
-   if you'd like a different one).
+   selection.
 3. Add `GOOGLE_TTS_API_KEY` to `.env` (local) and to Vercel's Environment
    Variables (production/preview).
 
