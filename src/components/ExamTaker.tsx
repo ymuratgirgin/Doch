@@ -44,35 +44,74 @@ const PART_TIPS: Record<string, string> = {
 };
 
 // Sprachbausteine passages embed gap numbers inline, e.g. "...es geht (21)
-// gut." The real exam prints a blank line under each number so it's
-// obvious exactly where the missing word goes — reproduce that by
-// underlining each "(NN)" marker instead of leaving it as plain text.
+// gut." The real telc exam prints each gap as a numbered blank with its
+// answer chosen from options printed nearby (Teil 1) or from one shared
+// word bank printed below the whole letter (Teil 2) — reproduce that by
+// replacing each "(NN)" marker with an inline dropdown bound to that
+// gap's question, instead of leaving the gap as plain underlined text
+// with a separate answer list below.
 //
 // The model sometimes gets the numbers themselves out of order/wrong
 // (e.g. "...(24)... (23)..." within the same letter), even though the
 // gaps still appear in the correct reading order — so ignore whatever
 // number the model wrote and relabel every marker sequentially from the
 // part's real starting item number, in the order the markers appear in
-// the text. That's always consistent with the question list below, which
-// is numbered the same way (by array order, not by the model's own count).
+// the text. That also matches each gap to its question by position (the
+// Nth marker in the text is questions[N]), which is how the rest of the
+// app already numbers these items (by array order, not the model's own
+// count).
 const GAP_MARKER = /(\(\d+\))/g;
 const IS_GAP_MARKER = /^\(\d+\)$/;
 
-function renderTextWithGapMarkers(text: string, startNumber: number) {
+function renderGapFillPassage(
+  text: string,
+  questions: Question[],
+  teilLabel: string | null,
+  responses: Record<string, string>,
+  setResponse: (questionId: string, value: string) => void
+) {
   let gapIndex = 0;
   return text.split(GAP_MARKER).map((part, i) => {
     if (!IS_GAP_MARKER.test(part)) return part;
-    const number = startNumber + gapIndex;
+    const index = gapIndex;
     gapIndex++;
+    const itemNumber = getItemNumber(teilLabel, index);
+    const q = questions[index];
+    if (!q) return `(${itemNumber})`;
+    const options = q.options ? (JSON.parse(q.options) as string[]) : [];
     return (
-      <span
-        key={i}
-        className="border-b-2 border-blue-400 px-0.5 font-semibold text-blue-700"
-      >
-        ({number})
+      <span key={i} className="mx-1 inline-flex items-center gap-1 align-baseline">
+        <span className="text-xs font-semibold text-blue-700">({itemNumber})</span>
+        <select
+          value={responses[q.id] ?? ""}
+          onChange={(e) => setResponse(q.id, e.target.value)}
+          className="rounded-md border-b-2 border-blue-400 bg-blue-50 px-1 py-0.5 text-sm font-medium text-blue-900"
+        >
+          <option value="" disabled>
+            ⋯
+          </option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
       </span>
     );
   });
+}
+
+// Sprachbausteine Teil 2 gives one shared 15-word bank (a-o) for all 10
+// gaps, printed once below the whole letter — every question in the part
+// carries the identical options list. Teil 1 instead gives each gap its
+// own 3 unique options (no shared bank), so this returns null there and
+// the per-gap dropdown built above is the only place those options show.
+function getSharedWordBank(questions: Question[]): { letter: string; body: string }[] | null {
+  const first = questions[0]?.options;
+  if (!first || !questions.every((q) => q.options === first)) return null;
+  const options = JSON.parse(first) as string[];
+  if (options.length <= 3) return null;
+  return options.map(parseMatchingOption);
 }
 
 function formatClock(totalSeconds: number): string {
@@ -316,12 +355,46 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
             </div>
           )}
 
-          {part.passageText && part.type !== "LISTENING" && (
+          {part.passageText && part.type === "GRAMMAR" && (
+            <div className="space-y-3">
+              <p className="whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-sm leading-8">
+                {renderGapFillPassage(
+                  part.passageText,
+                  part.questions,
+                  part.teilLabel,
+                  responses,
+                  setResponse
+                )}
+              </p>
+              {(() => {
+                const wordBank = getSharedWordBank(part.questions);
+                if (!wordBank) return null;
+                return (
+                  <div className="rounded-md border border-neutral-200 bg-white p-3">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                      Word bank
+                    </p>
+                    <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+                      {wordBank.map(({ letter, body }) => (
+                        <div key={letter}>
+                          <span className="font-semibold uppercase text-blue-700">{letter}</span>{" "}
+                          {body.trim()}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {part.passageText && part.type !== "LISTENING" && part.type !== "GRAMMAR" && (
             <p className="whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-sm leading-7">
-              {renderTextWithGapMarkers(part.passageText, getItemNumber(part.teilLabel, 0))}
+              {part.passageText}
             </p>
           )}
 
+          {part.type !== "GRAMMAR" && (
           <div className="space-y-5">
             {(() => {
               let questionNumber = 0;
@@ -376,14 +449,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                 const itemNumber = getItemNumber(part.teilLabel, questionNumber);
                 questionNumber++;
                 const options = q.options ? (JSON.parse(q.options) as string[]) : null;
-                // Sprachbausteine prompts are just the gap's item number as
-                // text (e.g. "21") — since we compute the real number
-                // ourselves from the blueprint, showing the prompt too
-                // would just duplicate it.
-                const numberLabel =
-                  part.type === "GRAMMAR"
-                    ? `${itemNumber}.`
-                    : `${itemNumber}. ${stripLeadingItemNumber(q.prompt)}`;
+                const numberLabel = `${itemNumber}. ${stripLeadingItemNumber(q.prompt)}`;
                 return (
                   <div key={q.id}>
                     {part.type === "WRITING" ? (
@@ -440,6 +506,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
               });
             })()}
           </div>
+          )}
         </section>
         );
       })}
