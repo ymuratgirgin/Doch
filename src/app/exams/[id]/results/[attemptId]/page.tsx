@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { computePassEstimate } from "@/lib/passEstimate";
 import { resolveMatchingAnswer } from "@/lib/matching";
-import { getItemNumber } from "@/lib/examSchema";
+import { getItemNumber, stripLeadingItemNumber } from "@/lib/examSchema";
 import { parseWritingPrompt } from "@/lib/writingPrompt";
 const CRITERION_LABELS: Record<string, string> = {
   aufgabenbewaeltigung: "Aufgabenbewältigung",
@@ -85,7 +85,10 @@ export default async function ResultsPage({
             // just the gap's number as text (e.g. "21"), so showing both
             // would duplicate it.
             const itemNumber = getItemNumber(part.teilLabel, i);
-            const numberLabel = part.type === "GRAMMAR" ? `${itemNumber}.` : `${itemNumber}. ${q.prompt}`;
+            const numberLabel =
+              part.type === "GRAMMAR"
+                ? `${itemNumber}.`
+                : `${itemNumber}. ${stripLeadingItemNumber(q.prompt)}`;
 
             return (
               <div key={q.id} className="rounded-lg border border-neutral-200 bg-white p-4">

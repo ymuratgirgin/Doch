@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import ListeningPlayer from "@/components/ListeningPlayer";
 import SpeakingRecorder from "@/components/SpeakingRecorder";
 import { parseMatchingOption } from "@/lib/matching";
-import { getItemNumber } from "@/lib/examSchema";
+import { getItemNumber, stripLeadingItemNumber } from "@/lib/examSchema";
 import { parseWritingPrompt } from "@/lib/writingPrompt";
 
 type Question = {
@@ -274,7 +274,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                         {block.situations.map((q, idx) => (
                           <div key={q.id}>
                             <p className="text-sm font-medium">
-                              {startNumber + idx}. {q.prompt}
+                              {startNumber + idx}. {stripLeadingItemNumber(q.prompt)}
                             </p>
                             <div className="mt-2 flex flex-wrap gap-2">
                               {parsedOptions.map(({ letter }) => (
@@ -308,7 +308,9 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                 // ourselves from the blueprint, showing the prompt too
                 // would just duplicate it.
                 const numberLabel =
-                  part.type === "GRAMMAR" ? `${itemNumber}.` : `${itemNumber}. ${q.prompt}`;
+                  part.type === "GRAMMAR"
+                    ? `${itemNumber}.`
+                    : `${itemNumber}. ${stripLeadingItemNumber(q.prompt)}`;
                 return (
                   <div key={q.id}>
                     {part.type === "WRITING" ? (
