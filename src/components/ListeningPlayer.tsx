@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/components/LanguageProvider";
 
 // Per spec §3.6: Hörverstehen Teil 1 is played once, Teil 2 and 3 twice.
 function maxPlaysForTeil(teilLabel: string | null): number {
@@ -28,6 +29,7 @@ export default function ListeningPlayer({
   script: string;
   teilLabel: string | null;
 }) {
+  const { t } = useI18n();
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [playing, setPlaying] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
@@ -144,8 +146,7 @@ export default function ListeningPlayer({
   if (!speechSupported && serverError) {
     return (
       <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-        Playback isn&apos;t available right now. You can still read the
-        script below, or download it to use with an external TTS tool.
+        {t.listening.playbackUnavailable}
       </p>
     );
   }
@@ -160,17 +161,14 @@ export default function ListeningPlayer({
           className="rounded-md bg-orange-300 px-3 py-1.5 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
         >
           {loadingAudio
-            ? "Loading…"
+            ? t.listening.loading
             : playing
-              ? "Stop"
+              ? t.listening.stop
               : playCount >= maxPlays
-                ? "No plays left"
-                : "▶ Play"}
+                ? t.listening.noPlaysLeft
+                : t.listening.play}
         </button>
-        <span className="text-xs text-neutral-500">
-          Played {playCount}/{maxPlays} time{maxPlays === 1 ? "" : "s"} — per
-          the real exam, this Teil is played {maxPlays === 1 ? "once" : "twice"}.
-        </span>
+        <span className="text-xs text-neutral-500">{t.listening.playedTimes(playCount, maxPlays)}</span>
       </div>
     </div>
   );
