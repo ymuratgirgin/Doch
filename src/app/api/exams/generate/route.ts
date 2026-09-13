@@ -78,10 +78,21 @@ async function generateSection(
   const group = SECTION_GROUPS[groupKey];
   // Claude Sonnet 5 runs adaptive thinking by default, which eats into
   // max_tokens before the model ever writes the JSON answer — these
-  // budgets leave headroom for that on top of the actual output (reading/
-  // listening/grammar in particular need room for several invented
-  // passages plus questions).
-  const maxTokens = groupKey === "writing" || groupKey === "speaking" ? 6000 : 16000;
+  // budgets leave headroom for that on top of the actual output. Reading
+  // is the heaviest (3 full Teile: matching headlines, a full article,
+  // matching ads — each needs several complete passages plus every
+  // option string spelled out), so it gets the largest budget; a 16000
+  // budget was observed truncating mid-passage (the model's JSON got cut
+  // off before the closing quote, "Unterminated string"), so these were
+  // raised rather than shortening the generated content.
+  const maxTokens =
+    groupKey === "writing" || groupKey === "speaking"
+      ? 6000
+      : groupKey === "reading"
+        ? 32000
+        : groupKey === "listening"
+          ? 24000
+          : 16000;
 
   // The spec is identical on every call regardless of mode, groupKey, or
   // user — split it into its own content block with a cache breakpoint so
@@ -140,6 +151,17 @@ async function generateSection(
   if (!textBlock || textBlock.type !== "text") {
     throw new Error(
       `Model returned no text content for section "${groupKey}" (stop_reason: ${response.stop_reason})`
+    );
+  }
+
+  // A response cut off at the max_tokens ceiling lands mid-string/mid-object
+  // and JSON.parse reports it as a generic "Unterminated string"/"Unexpected
+  // end of input" — surface the real cause (hit the token budget) instead,
+  // so it's obviously "raise maxTokens for this section" rather than a
+  // prompt/formatting bug to chase.
+  if (response.stop_reason === "max_tokens") {
+    throw new Error(
+      `Model response for section "${groupKey}" was truncated (hit the ${maxTokens}-token budget before finishing) — try again, or this section's token budget needs raising further.`
     );
   }
 
