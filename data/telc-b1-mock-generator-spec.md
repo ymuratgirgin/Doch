@@ -44,6 +44,7 @@ Purpose: this document is a complete instruction set for generating original, fa
 - Write **1 article**, 300–400 words, journalistic human-interest or reportage style (a project, an initiative, a trend, a portrait), with a headline and optional sub-headline.
 - Write **5 MC questions**, options a/b/c, **in text order**. Each question stem is a sentence-completion or direct question.
 - Wrong options must be *plausible*: recycle words that appear in the text but distort the relationship (who/what/why/how many). Exactly one option is defensible from the text.
+- The correct option must paraphrase the relevant sentence — synonyms, a restructured clause, or a different grammatical construction — never quote the text's exact wording. A correct option copied verbatim turns the item into word-matching instead of a comprehension check; save the text's literal phrasing for the wrong options' recycled vocabulary instead.
 - Include at least one question on a number/quantity, one on a reason/purpose, and one on the intention of a person in the text.
 
 ### 3.3 Leseverstehen Teil 3 (items 11–20)
