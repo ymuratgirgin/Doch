@@ -10,8 +10,9 @@ learner's vocabulary and progress over time.
 - Next.js (App Router) + TypeScript + Tailwind
 - Prisma 7 + Postgres (via `@prisma/adapter-pg`)
 - `@anthropic-ai/sdk` for exam generation and answer evaluation
-- Browser `SpeechSynthesis` / `SpeechRecognition` (Web Speech API) for
-  in-app listening playback and speaking practice
+- Google Cloud Text-to-Speech for listening playback audio (falls back to
+  the browser's built-in `SpeechSynthesis` if unconfigured/unreachable)
+- Browser `SpeechRecognition` (Web Speech API) for speaking practice
 
 ## Status / what's still open
 
@@ -61,13 +62,41 @@ Open [http://localhost:3000](http://localhost:3000) and log in with any name.
    generation/grading/enrichment will just show a clear error). Scope it
    to every environment you deploy to as well — a key added for
    Production only won't be available on Preview deployments.
-5. Deploy. The build script (`prisma generate && prisma migrate deploy &&
+5. Optionally add `GOOGLE_TTS_API_KEY` the same way, to replace the
+   robotic browser voice with real Google Cloud TTS audio for listening
+   playback (see "Getting real listening audio" below) — skip it and the
+   app just falls back to the browser's built-in voice.
+6. Deploy. The build script (`prisma generate && prisma migrate deploy &&
    next build`) applies any pending migrations automatically on every
    deploy — safe to run repeatedly, it only ever applies new migrations.
-6. **One-time seed step**: migrations don't seed data. After the first
+7. **One-time seed step**: migrations don't seed data. After the first
    successful deploy, run `npx prisma db seed` locally with `DATABASE_URL`
    pointed at the production database (pull it via `vercel env pull`, or
    copy it from the Storage tab) to load the B1 vocab list.
+
+## Getting real listening audio
+
+Without `GOOGLE_TTS_API_KEY`, Hörverstehen playback uses the browser's
+built-in `SpeechSynthesis` voice, which can sound noticeably robotic.
+Setting it swaps in real Google Cloud Text-to-Speech audio instead
+(`src/lib/tts.ts`, called from `/api/tts`):
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create
+   a project (or use an existing one) and enable the **Cloud Text-to-Speech
+   API**.
+2. Under **APIs & Services → Credentials**, create an API key. Cloud TTS
+   bills per character synthesized — a full mock exam's listening scripts
+   run roughly 900-1,450 words (~6,000-9,000 characters), which costs well
+   under $0.15 per exam on the Neural2 voice this app uses (`de-DE-Neural2-B`
+   in `src/lib/tts.ts` — swap it for another
+   [supported German voice](https://cloud.google.com/text-to-speech/docs/voices)
+   if you'd like a different one).
+3. Add `GOOGLE_TTS_API_KEY` to `.env` (local) and to Vercel's Environment
+   Variables (production/preview).
+
+If the key is missing, misconfigured, or the request fails for any reason,
+`ListeningPlayer` silently falls back to the browser voice — there's no
+broken state either way, just a quality difference.
 
 ## How it works
 
