@@ -74,6 +74,51 @@ export function stripLeadingItemNumber(prompt: string): string {
   return prompt.replace(/^\s*\d{1,3}[.):]\s*/, "");
 }
 
+// The model invents "Herr <Name>:"/"Frau <Name>:" labels inside a
+// Hörverstehen script purely so each speaker can get a distinct TTS voice
+// (see src/lib/tts.ts) — the spec tells it these names must never appear
+// in the richtig/falsch statements themselves (the real exam always says
+// "die Sprecherin"/"der Journalist", never an invented name), but that
+// instruction doesn't always get followed. Rather than relying on prompt
+// compliance alone, strip any name that's actually used as a speaker
+// label in this part's own script wherever it shows up in a statement.
+const SPEAKER_LABEL_GLOBAL = /(Herr|Frau)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]*)\s*:/g;
+
+export function neutralizeSpeakerNames(
+  prompt: string,
+  passageText: string | null | undefined
+): string {
+  if (!passageText) return prompt;
+
+  const labels = new Set<string>();
+  const regex = new RegExp(SPEAKER_LABEL_GLOBAL);
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(passageText))) {
+    labels.add(`${match[1]} ${match[2]}`);
+  }
+  if (labels.size === 0) return prompt;
+
+  let result = prompt;
+  for (const label of labels) {
+    const gender = label.startsWith("Herr") ? "Herr" : "Frau";
+    const neutral = gender === "Herr" ? "Sprecher" : "Sprecherin";
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    result = result.replace(new RegExp(escaped, "g"), (_matched, offset: number, str: string) => {
+      const preceding = str.slice(0, offset);
+      const atSentenceStart = preceding.trim() === "" || /[.!?]\s*$/.test(preceding);
+      const article = atSentenceStart
+        ? gender === "Herr"
+          ? "Der"
+          : "Die"
+        : gender === "Herr"
+          ? "der"
+          : "die";
+      return `${article} ${neutral}`;
+    });
+  }
+  return result;
+}
+
 // Solo-adapted Mündlicher Ausdruck (spec §3.8 is a paired oral exam; we
 // adapt each Teil to a monologue). Official per-criterion caps are
 // Ausdrucksfähigkeit/Aufgabenbewältigung/Formale Richtigkeit/Aussprache at
@@ -218,6 +263,12 @@ this TypeScript shape:
     }
   ]
 }
+
+For "true_false" items (all Hörverstehen statements), "correctAnswer" must
+be exactly the lowercase string "richtig" or "falsch" — no other wording,
+capitalization, or symbol (not "R"/"F", not "+"/"-", not "Richtig"). The
+app renders its own fixed richtig/falsch buttons regardless of "options",
+so this field is the only thing that needs to match.
 
 For Leseverstehen Teil 1 and Teil 3 (matching tasks), encode the headlines/
 ads as the "options" of a single synthetic question per situation/text, OR

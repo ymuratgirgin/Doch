@@ -14,6 +14,7 @@ import {
   extractJson,
   getTeilMaxPoints,
   groupsForMode,
+  neutralizeSpeakerNames,
 } from "@/lib/examSchema";
 
 // Generation runs several Claude calls in parallel, and a full response can
@@ -276,7 +277,10 @@ export async function POST(req: NextRequest) {
                 questions: {
                   create: part.questions.map((q, qIndex) => ({
                     order: qIndex,
-                    prompt: q.prompt,
+                    prompt:
+                      part.type === "LISTENING"
+                        ? neutralizeSpeakerNames(q.prompt, part.passageText)
+                        : q.prompt,
                     questionType: q.questionType,
                     options: q.options ? JSON.stringify(q.options) : null,
                     correctAnswer: q.correctAnswer ?? null,

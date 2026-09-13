@@ -478,6 +478,28 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                           onChange={(v) => setResponse(q.id, v)}
                         />
                       </div>
+                    ) : q.questionType === "true_false" ? (
+                      // Every Hörverstehen item is richtig/falsch — a fixed,
+                      // universal choice that doesn't depend on the model
+                      // having populated "options" (nothing requires it to),
+                      // so render it directly instead of falling back to a
+                      // free-text box whenever "options" is empty.
+                      <div className="mt-2 flex gap-2">
+                        {(["richtig", "falsch"] as const).map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setResponse(q.id, val)}
+                            className={`h-11 min-w-24 rounded-md border px-4 text-sm font-medium capitalize ${
+                              responses[q.id] === val
+                                ? "border-blue-400 bg-blue-100 text-blue-900"
+                                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100"
+                            }`}
+                          >
+                            {val}
+                          </button>
+                        ))}
+                      </div>
                     ) : options && q.questionType !== "free_text" ? (
                       <div className="mt-2 space-y-1">
                         {options.map((opt) => (
