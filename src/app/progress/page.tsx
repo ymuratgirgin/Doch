@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { computePassEstimate } from "@/lib/passEstimate";
@@ -13,12 +14,18 @@ const MODE_LABELS: Record<string, string> = {
   speaking: "Speaking",
 };
 
+// "full" was previously left out here, so a Complete Mock Exam's score
+// never showed up anywhere on this page — the trend chart only ever
+// queried the four single-skill modes.
 const TREND_MODES: { mode: string; label: string }[] = [
+  { mode: "full", label: "Complete Mock Exam" },
   { mode: "reading", label: "Reading" },
   { mode: "listening", label: "Listening" },
   { mode: "writing", label: "Writing" },
   { mode: "grammar", label: "Grammar" },
 ];
+
+type PartBreakdown = { label: string; earned: number; maxPoints: number; graded: boolean };
 
 export default async function ProgressPage() {
   const user = await requireUser();
@@ -27,7 +34,24 @@ export default async function ProgressPage() {
     prisma.activitySession.findMany({ where: { userId: user.id } }),
     prisma.attempt.findMany({
       where: { userId: user.id, submittedAt: { not: null } },
-      include: { exam: { select: { examMode: true } } },
+      orderBy: { submittedAt: "desc" },
+      include: {
+        exam: {
+          select: {
+            title: true,
+            examMode: true,
+            parts: {
+              orderBy: { order: "asc" },
+              select: {
+                type: true,
+                teilLabel: true,
+                questions: { select: { id: true, maxPoints: true } },
+              },
+            },
+          },
+        },
+        answers: { select: { questionId: true, scoreAwarded: true } },
+      },
     }),
     prisma.userVocabProgress.groupBy({
       by: ["status"],
@@ -61,6 +85,30 @@ export default async function ProgressPage() {
     const mode = a.exam.examMode;
     attemptsByMode.set(mode, (attemptsByMode.get(mode) ?? 0) + 1);
   }
+
+  // Per-exam, per-Teil point breakdown (e.g. "Leseverstehen Teil 1: 17.5 /
+  // 25") — each ExamPart already is one specific Teil, not a whole skill
+  // group, so this lines up exactly with how the real exam reports a
+  // score. Kept as a full, persistent history (not just the last-8 trend
+  // chart) so every exam's breakdown stays visible.
+  const history = attempts.map((attempt) => {
+    const parts: PartBreakdown[] = attempt.exam.parts.map((part) => {
+      const questionIds = new Set(part.questions.map((q) => q.id));
+      const relevantAnswers = attempt.answers.filter((a) => questionIds.has(a.questionId));
+      const maxPoints = part.questions.reduce((sum, q) => sum + q.maxPoints, 0);
+      const graded = relevantAnswers.some((a) => a.scoreAwarded !== null);
+      const earned = relevantAnswers.reduce((sum, a) => sum + (a.scoreAwarded ?? 0), 0);
+      return { label: part.teilLabel ?? part.type, earned, maxPoints, graded };
+    });
+    return {
+      id: attempt.id,
+      examId: attempt.examId,
+      title: attempt.exam.title,
+      submittedAt: attempt.submittedAt!,
+      score: attempt.score,
+      parts,
+    };
+  });
 
   const knownCount = vocabCounts.find((v) => v.status === "known")?._count ?? 0;
   const learningCount = vocabCounts.find((v) => v.status === "learning")?._count ?? 0;
@@ -114,6 +162,46 @@ export default async function ProgressPage() {
       <div>
         <h2 className="mb-2 font-medium">Score trend</h2>
         <ScoreTrendChart data={trendData} />
+      </div>
+
+      <div className="rounded-lg border border-neutral-200 bg-white p-4">
+        <h2 className="font-medium">Exam history</h2>
+        {history.length === 0 ? (
+          <p className="mt-2 text-sm text-neutral-500">No completed exams yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-4">
+            {history.map((h) => (
+              <li key={h.id} className="rounded-md border border-neutral-100 p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <div>
+                    <Link
+                      href={`/exams/${h.examId}/results/${h.id}`}
+                      className="font-medium text-blue-900 hover:underline"
+                    >
+                      {h.title}
+                    </Link>
+                    <span className="ml-2 text-xs text-neutral-500">
+                      {h.submittedAt.toLocaleDateString()}
+                    </span>
+                  </div>
+                  <span className="text-lg font-semibold">
+                    {h.score !== null ? `${Math.round(h.score)}%` : "Not graded"}
+                  </span>
+                </div>
+                <ul className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-neutral-600 sm:grid-cols-2">
+                  {h.parts.map((p, i) => (
+                    <li key={i} className="flex justify-between gap-2">
+                      <span>{p.label}</span>
+                      <span className="whitespace-nowrap">
+                        {p.graded ? `${p.earned.toFixed(1)} / ${p.maxPoints.toFixed(1)}` : "pending"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4">

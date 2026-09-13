@@ -21,7 +21,7 @@ export default function ScoreTrendChart({
 }: {
   data: { mode: string; label: string; scores: number[] }[];
 }) {
-  const palette = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"];
+  const palette = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#9163d4"];
   const series: Series[] = data
     .filter((d) => d.scores.length > 0)
     .map((d, i) => ({ key: d.mode, label: d.label, color: palette[i % palette.length], scores: d.scores }));
