@@ -45,6 +45,13 @@ async function callModel(system: string, userMessage: string, maxTokens: number)
       },
       { timeout: ANTHROPIC_CALL_TIMEOUT_MS }
     );
+    // extractJson can repair minor JSON corruption (e.g. an unescaped
+    // quote), but a response cut off at the max_tokens ceiling is missing
+    // real content, not just malformed — repairing that would silently
+    // produce an incomplete evaluation (e.g. a missing rubric criterion)
+    // instead of the "please retry" fallback below, so treat it as a
+    // failed call before ever reaching extractJson.
+    if (response.stop_reason === "max_tokens") return null;
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") return null;
     return extractJson(textBlock.text);
