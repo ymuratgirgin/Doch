@@ -2,6 +2,8 @@
 // plus the deterministic telc B1 point table (§1/§4 of the spec) — point
 // values are assigned by our own code, never trusted from model output.
 
+import { jsonrepair } from "jsonrepair";
+
 export type GeneratedQuestion = {
   prompt: string;
   questionType: "multiple_choice" | "gap_fill" | "true_false" | "matching" | "free_text";
@@ -327,5 +329,22 @@ export function extractJson(text: string): unknown {
   const trimmed = text.trim();
   const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidate = fenced ? fenced[1] : trimmed;
-  return JSON.parse(candidate);
+  try {
+    return JSON.parse(candidate);
+  } catch (err) {
+    // The model occasionally writes a literal, unescaped quote inside a
+    // string value — e.g. echoing this app's own spec examples like
+    // (z.B. "Wie teilen Sie sich die Hausarbeit?") verbatim into an
+    // "instructions" field without escaping the inner quotes — which
+    // breaks JSON.parse partway through with "Expected ',' or '}' after
+    // property value", not at the end like a truncated response would.
+    // jsonrepair's heuristics (used widely for exactly this class of
+    // malformed LLM output) can usually recover the intended string, so
+    // try it before giving up.
+    try {
+      return JSON.parse(jsonrepair(candidate));
+    } catch {
+      throw err;
+    }
+  }
 }

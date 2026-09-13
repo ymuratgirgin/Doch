@@ -44,31 +44,99 @@ const PART_TIPS: Record<string, string> = {
 };
 
 // Sprachbausteine passages embed gap numbers inline, e.g. "...es geht (21)
-// gut." The real exam prints a blank line under each number so it's
-// obvious exactly where the missing word goes — reproduce that by
-// underlining each "(NN)" marker instead of leaving it as plain text.
+// gut." The real telc exam prints each gap as a numbered blank with its
+// answer chosen from options printed nearby (Teil 1) or from one shared
+// word bank printed below the whole letter (Teil 2) — reproduce that by
+// replacing each "(NN)" marker with an inline dropdown bound to that
+// gap's question, instead of leaving the gap as plain underlined text
+// with a separate answer list below.
+//
+// The model sometimes gets the numbers themselves out of order/wrong
+// (e.g. "...(24)... (23)..." within the same letter), even though the
+// gaps still appear in the correct reading order — so ignore whatever
+// number the model wrote and relabel every marker sequentially from the
+// part's real starting item number, in the order the markers appear in
+// the text. That also matches each gap to its question by position (the
+// Nth marker in the text is questions[N]), which is how the rest of the
+// app already numbers these items (by array order, not the model's own
+// count).
 const GAP_MARKER = /(\(\d+\))/g;
 const IS_GAP_MARKER = /^\(\d+\)$/;
 
-function renderTextWithGapMarkers(text: string) {
-  return text.split(GAP_MARKER).map((part, i) =>
-    IS_GAP_MARKER.test(part) ? (
-      <span
-        key={i}
-        className="border-b-2 border-blue-400 px-0.5 font-semibold text-blue-700"
-      >
-        {part}
+function renderGapFillPassage(
+  text: string,
+  questions: Question[],
+  teilLabel: string | null,
+  responses: Record<string, string>,
+  setResponse: (questionId: string, value: string) => void
+) {
+  let gapIndex = 0;
+  return text.split(GAP_MARKER).map((part, i) => {
+    if (!IS_GAP_MARKER.test(part)) return part;
+    const index = gapIndex;
+    gapIndex++;
+    const itemNumber = getItemNumber(teilLabel, index);
+    const q = questions[index];
+    if (!q) return `(${itemNumber})`;
+    const options = q.options ? (JSON.parse(q.options) as string[]) : [];
+    return (
+      <span key={i} className="mx-1 inline-flex items-center gap-1 align-baseline">
+        <span className="text-xs font-semibold text-blue-700">({itemNumber})</span>
+        <select
+          value={responses[q.id] ?? ""}
+          onChange={(e) => setResponse(q.id, e.target.value)}
+          className="rounded-md border-b-2 border-blue-400 bg-blue-50 px-1 py-0.5 text-sm font-medium text-blue-900"
+        >
+          <option value="" disabled>
+            ⋯
+          </option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
       </span>
-    ) : (
-      part
-    )
-  );
+    );
+  });
+}
+
+// Sprachbausteine Teil 2 gives one shared 15-word bank (a-o) for all 10
+// gaps, printed once below the whole letter — every question in the part
+// carries the identical options list. Teil 1 instead gives each gap its
+// own 3 unique options (no shared bank), so this returns null there and
+// the per-gap dropdown built above is the only place those options show.
+function getSharedWordBank(questions: Question[]): { letter: string; body: string }[] | null {
+  const first = questions[0]?.options;
+  if (!first || !questions.every((q) => q.options === first)) return null;
+  const options = JSON.parse(first) as string[];
+  if (options.length <= 3) return null;
+  return options.map(parseMatchingOption);
 }
 
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 type RenderBlock =
@@ -187,6 +255,23 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
 
   const lowTime = remainingSeconds !== null && remainingSeconds <= 120;
 
+  const listeningParts = exam.parts.filter((p) => p.type === "LISTENING" && p.passageText);
+
+  function downloadAllListeningScripts() {
+    const text = listeningParts
+      .map((p) => `=== ${p.teilLabel ?? "Hörverstehen"} ===\n\n${p.passageText}`)
+      .join("\n\n\n");
+    downloadTextFile(`${slugify(exam.title)}-listening-scripts.txt`, text);
+  }
+
+  function downloadListeningScript(part: ExamPart) {
+    if (!part.passageText) return;
+    downloadTextFile(
+      `${slugify(exam.title)}-${slugify(part.teilLabel ?? "hoerverstehen")}.txt`,
+      part.passageText
+    );
+  }
+
   return (
     <div className="space-y-8">
       {remainingSeconds !== null && (
@@ -198,6 +283,23 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
           }`}
         >
           Time remaining: {formatClock(remainingSeconds)}
+        </div>
+      )}
+
+      {listeningParts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <span>
+            Built-in playback uses your browser&apos;s speech synthesis, which
+            can sound robotic. Download the scripts to generate better audio
+            with an external text-to-speech tool instead.
+          </span>
+          <button
+            type="button"
+            onClick={downloadAllListeningScripts}
+            className="ml-auto whitespace-nowrap rounded-md border border-blue-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-900 hover:bg-blue-100"
+          >
+            Download all scripts (.txt)
+          </button>
         </div>
       )}
 
@@ -225,30 +327,74 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
           {part.passageText && part.type === "LISTENING" && (
             <div className="space-y-2">
               <ListeningPlayer script={part.passageText} teilLabel={part.teilLabel} />
-              {revealedScripts[part.id] ? (
+              <div className="flex flex-wrap items-center gap-3">
+                {revealedScripts[part.id] ? null : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRevealedScripts((prev) => ({ ...prev, [part.id]: true }))
+                    }
+                    className="text-xs text-neutral-500 underline hover:text-neutral-800"
+                  >
+                    Show script (only after listening, for review)
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => downloadListeningScript(part)}
+                  className="text-xs text-neutral-500 underline hover:text-neutral-800"
+                >
+                  Download script (.txt)
+                </button>
+              </div>
+              {revealedScripts[part.id] && (
                 <p className="whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-sm">
                   {part.passageText}
                 </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setRevealedScripts((prev) => ({ ...prev, [part.id]: true }))
-                  }
-                  className="text-xs text-neutral-500 underline hover:text-neutral-800"
-                >
-                  Show script (only after listening, for review)
-                </button>
               )}
             </div>
           )}
 
-          {part.passageText && part.type !== "LISTENING" && (
+          {part.passageText && part.type === "GRAMMAR" && (
+            <div className="space-y-3">
+              <p className="whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-sm leading-8">
+                {renderGapFillPassage(
+                  part.passageText,
+                  part.questions,
+                  part.teilLabel,
+                  responses,
+                  setResponse
+                )}
+              </p>
+              {(() => {
+                const wordBank = getSharedWordBank(part.questions);
+                if (!wordBank) return null;
+                return (
+                  <div className="rounded-md border border-neutral-200 bg-white p-3">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                      Word bank
+                    </p>
+                    <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+                      {wordBank.map(({ letter, body }) => (
+                        <div key={letter}>
+                          <span className="font-semibold uppercase text-blue-700">{letter}</span>{" "}
+                          {body.trim()}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {part.passageText && part.type !== "LISTENING" && part.type !== "GRAMMAR" && (
             <p className="whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-sm leading-7">
-              {renderTextWithGapMarkers(part.passageText)}
+              {part.passageText}
             </p>
           )}
 
+          {part.type !== "GRAMMAR" && (
           <div className="space-y-5">
             {(() => {
               let questionNumber = 0;
@@ -303,14 +449,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                 const itemNumber = getItemNumber(part.teilLabel, questionNumber);
                 questionNumber++;
                 const options = q.options ? (JSON.parse(q.options) as string[]) : null;
-                // Sprachbausteine prompts are just the gap's item number as
-                // text (e.g. "21") — since we compute the real number
-                // ourselves from the blueprint, showing the prompt too
-                // would just duplicate it.
-                const numberLabel =
-                  part.type === "GRAMMAR"
-                    ? `${itemNumber}.`
-                    : `${itemNumber}. ${stripLeadingItemNumber(q.prompt)}`;
+                const numberLabel = `${itemNumber}. ${stripLeadingItemNumber(q.prompt)}`;
                 return (
                   <div key={q.id}>
                     {part.type === "WRITING" ? (
@@ -367,6 +506,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
               });
             })()}
           </div>
+          )}
         </section>
         );
       })}
