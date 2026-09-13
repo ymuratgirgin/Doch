@@ -52,7 +52,15 @@ type SpeakerTurn = { voice: string; text: string };
 const SPEAKER_LABEL = /^(Herr|Frau)\s+[A-ZÄÖÜ][\wÄÖÜäöüß-]*\s*:\s*/;
 
 function splitIntoSpeakerTurns(text: string): SpeakerTurn[] {
-  const withoutPauseMarkers = text.replace(/\(Pause\)/gi, ". ");
+  // Replacing "(Pause)" with a period made sense when the whole script was
+  // one continuous single-voice clip (it just added a natural mid-speech
+  // beat) — but a pause marker almost always sits between two speakers'
+  // turns, and now that each turn is synthesized separately, that period
+  // ends up dangling alone at the end of a turn with nothing around it
+  // (e.g. "...gefällt.\n\n."). Google reads an isolated period like that
+  // literally as the word "Punkt". A pause between two separately
+  // synthesized clips needs no marker at all, so just drop it.
+  const withoutPauseMarkers = text.replace(/\(Pause\)/gi, " ");
 
   // Split right before each speaker-label line, keeping the label attached
   // to the text that follows it up to the next label (or end of script).
