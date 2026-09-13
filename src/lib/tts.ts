@@ -43,6 +43,24 @@ function splitIntoChunks(text: string): string[] {
   return chunks;
 }
 
+// Hesitation interjections ("ähm", "äh", "hm") are natural in human speech
+// but Google's voices don't recognize them as filled pauses — they read the
+// letters as a mispronounced word instead. The spec tells the model to
+// avoid these, but per this app's usual pattern of not fully trusting
+// prompt compliance for anything checkable, strip any that slip through
+// before synthesis rather than relying on it.
+const FILLER_WORD = /^(ä?hm+|ä+h+|ehm+)[,.:;…]*$/i;
+
+function stripFillerWords(text: string): string {
+  return text
+    .split(/\s+/)
+    .filter((token) => !FILLER_WORD.test(token))
+    .join(" ")
+    .replace(/\s+([,.!?])/g, "$1")
+    .replace(/,(\s*,)+/g, ",")
+    .trim();
+}
+
 type SpeakerTurn = { voice: string; text: string };
 
 // Matches a speaker label at the start of a line, e.g. "Frau Keller:" or
@@ -88,15 +106,18 @@ function splitIntoSpeakerTurns(text: string): SpeakerTurn[] {
     const match = segment.match(SPEAKER_LABEL);
     if (match) {
       const gender = match[1] as "Herr" | "Frau";
-      const spokenText = segment.slice(match[0].length).trim();
+      const spokenText = stripFillerWords(segment.slice(match[0].length).trim());
       if (spokenText) turns.push({ voice: voiceFor(match[0], gender), text: spokenText });
     } else if (segment.trim()) {
       // No speaker label (Teil 3's impersonal announcements, or content
       // generated before this convention existed) — one flat default voice.
-      turns.push({ voice: DEFAULT_VOICE, text: segment.trim() });
+      const spokenText = stripFillerWords(segment.trim());
+      if (spokenText) turns.push({ voice: DEFAULT_VOICE, text: spokenText });
     }
   }
-  return turns.length > 0 ? turns : [{ voice: DEFAULT_VOICE, text: withoutPauseMarkers.trim() }];
+  return turns.length > 0
+    ? turns
+    : [{ voice: DEFAULT_VOICE, text: stripFillerWords(withoutPauseMarkers.trim()) }];
 }
 
 async function synthesizeChunk(text: string, apiKey: string, voice: string): Promise<Buffer> {
