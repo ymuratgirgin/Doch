@@ -254,48 +254,60 @@ export async function POST(req: NextRequest) {
         return;
       }
 
-      const exam = await prisma.exam.create({
-        data: {
-          title: MODE_TITLES[mode],
-          examMode: mode,
-          timeBudgetMinutes: TIME_BUDGET_MINUTES[mode],
-          generatedBy: "llm",
-          promptSpec: EXAM_GENERATION_PROMPT,
-          focusAreas: JSON.stringify(weakAreas.map((w) => w.grammarTopic)),
-          parts: {
-            create: allParts.map((part, partIndex) => {
-              const teilTotal = getTeilMaxPoints(part.teilLabel);
-              const perItem =
-                teilTotal && part.questions.length > 0 ? teilTotal / part.questions.length : 1;
+      try {
+        const exam = await prisma.exam.create({
+          data: {
+            title: MODE_TITLES[mode],
+            examMode: mode,
+            timeBudgetMinutes: TIME_BUDGET_MINUTES[mode],
+            generatedBy: "llm",
+            promptSpec: EXAM_GENERATION_PROMPT,
+            focusAreas: JSON.stringify(weakAreas.map((w) => w.grammarTopic)),
+            parts: {
+              create: allParts.map((part, partIndex) => {
+                const teilTotal = getTeilMaxPoints(part.teilLabel);
+                const perItem =
+                  teilTotal && part.questions.length > 0 ? teilTotal / part.questions.length : 1;
 
-              return {
-                type: part.type,
-                teilLabel: part.teilLabel,
-                order: partIndex,
-                instructions: part.instructions,
-                passageText: part.passageText,
-                questions: {
-                  create: part.questions.map((q, qIndex) => ({
-                    order: qIndex,
-                    prompt:
-                      part.type === "LISTENING"
-                        ? neutralizeSpeakerNames(q.prompt, part.passageText)
-                        : q.prompt,
-                    questionType: q.questionType,
-                    options: q.options ? JSON.stringify(q.options) : null,
-                    correctAnswer: q.correctAnswer ?? null,
-                    grammarTopic: q.grammarTopic ?? null,
-                    maxPoints: perItem,
-                  })),
-                },
-              };
-            }),
+                return {
+                  type: part.type,
+                  teilLabel: part.teilLabel,
+                  order: partIndex,
+                  instructions: part.instructions,
+                  passageText: part.passageText,
+                  questions: {
+                    create: part.questions.map((q, qIndex) => ({
+                      order: qIndex,
+                      prompt:
+                        part.type === "LISTENING"
+                          ? neutralizeSpeakerNames(q.prompt, part.passageText)
+                          : q.prompt,
+                      questionType: q.questionType,
+                      options: q.options ? JSON.stringify(q.options) : null,
+                      correctAnswer: q.correctAnswer ?? null,
+                      grammarTopic: q.grammarTopic ?? null,
+                      maxPoints: perItem,
+                    })),
+                  },
+                };
+              }),
+            },
           },
-        },
-        select: { id: true },
-      });
+          select: { id: true },
+        });
 
-      send({ type: "done", examId: exam.id });
+        send({ type: "done", examId: exam.id });
+      } catch (err) {
+        // This save was previously outside any try/catch — an exception
+        // here (DB connectivity, a bad value from one of the generated
+        // sections, etc.) would abort the stream with neither a "done" nor
+        // an "error" event, surfacing to the client as the opaque
+        // "Generation ended without producing an exam" instead of the
+        // real cause.
+        const reason = err instanceof Error ? err.message : String(err);
+        console.error(`[exam-generate] failed to save exam: ${reason}`);
+        send({ type: "error", message: `Failed to save the generated exam: ${reason}` });
+      }
       controller.close();
     },
   });
