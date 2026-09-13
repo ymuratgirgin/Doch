@@ -47,22 +47,32 @@ const PART_TIPS: Record<string, string> = {
 // gut." The real exam prints a blank line under each number so it's
 // obvious exactly where the missing word goes — reproduce that by
 // underlining each "(NN)" marker instead of leaving it as plain text.
+//
+// The model sometimes gets the numbers themselves out of order/wrong
+// (e.g. "...(24)... (23)..." within the same letter), even though the
+// gaps still appear in the correct reading order — so ignore whatever
+// number the model wrote and relabel every marker sequentially from the
+// part's real starting item number, in the order the markers appear in
+// the text. That's always consistent with the question list below, which
+// is numbered the same way (by array order, not by the model's own count).
 const GAP_MARKER = /(\(\d+\))/g;
 const IS_GAP_MARKER = /^\(\d+\)$/;
 
-function renderTextWithGapMarkers(text: string) {
-  return text.split(GAP_MARKER).map((part, i) =>
-    IS_GAP_MARKER.test(part) ? (
+function renderTextWithGapMarkers(text: string, startNumber: number) {
+  let gapIndex = 0;
+  return text.split(GAP_MARKER).map((part, i) => {
+    if (!IS_GAP_MARKER.test(part)) return part;
+    const number = startNumber + gapIndex;
+    gapIndex++;
+    return (
       <span
         key={i}
         className="border-b-2 border-blue-400 px-0.5 font-semibold text-blue-700"
       >
-        {part}
+        ({number})
       </span>
-    ) : (
-      part
-    )
-  );
+    );
+  });
 }
 
 function formatClock(totalSeconds: number): string {
@@ -308,7 +318,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
 
           {part.passageText && part.type !== "LISTENING" && (
             <p className="whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-sm leading-7">
-              {renderTextWithGapMarkers(part.passageText)}
+              {renderTextWithGapMarkers(part.passageText, getItemNumber(part.teilLabel, 0))}
             </p>
           )}
 
