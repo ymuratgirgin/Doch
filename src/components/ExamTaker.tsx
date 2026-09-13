@@ -71,6 +71,25 @@ function formatClock(totalSeconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 type RenderBlock =
   | { kind: "matching"; options: string[]; situations: Question[] }
   | { kind: "single"; question: Question };
@@ -187,6 +206,23 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
 
   const lowTime = remainingSeconds !== null && remainingSeconds <= 120;
 
+  const listeningParts = exam.parts.filter((p) => p.type === "LISTENING" && p.passageText);
+
+  function downloadAllListeningScripts() {
+    const text = listeningParts
+      .map((p) => `=== ${p.teilLabel ?? "Hörverstehen"} ===\n\n${p.passageText}`)
+      .join("\n\n\n");
+    downloadTextFile(`${slugify(exam.title)}-listening-scripts.txt`, text);
+  }
+
+  function downloadListeningScript(part: ExamPart) {
+    if (!part.passageText) return;
+    downloadTextFile(
+      `${slugify(exam.title)}-${slugify(part.teilLabel ?? "hoerverstehen")}.txt`,
+      part.passageText
+    );
+  }
+
   return (
     <div className="space-y-8">
       {remainingSeconds !== null && (
@@ -198,6 +234,23 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
           }`}
         >
           Time remaining: {formatClock(remainingSeconds)}
+        </div>
+      )}
+
+      {listeningParts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <span>
+            Built-in playback uses your browser&apos;s speech synthesis, which
+            can sound robotic. Download the scripts to generate better audio
+            with an external text-to-speech tool instead.
+          </span>
+          <button
+            type="button"
+            onClick={downloadAllListeningScripts}
+            className="ml-auto whitespace-nowrap rounded-md border border-blue-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-900 hover:bg-blue-100"
+          >
+            Download all scripts (.txt)
+          </button>
         </div>
       )}
 
@@ -225,20 +278,30 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
           {part.passageText && part.type === "LISTENING" && (
             <div className="space-y-2">
               <ListeningPlayer script={part.passageText} teilLabel={part.teilLabel} />
-              {revealedScripts[part.id] ? (
+              <div className="flex flex-wrap items-center gap-3">
+                {revealedScripts[part.id] ? null : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRevealedScripts((prev) => ({ ...prev, [part.id]: true }))
+                    }
+                    className="text-xs text-neutral-500 underline hover:text-neutral-800"
+                  >
+                    Show script (only after listening, for review)
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => downloadListeningScript(part)}
+                  className="text-xs text-neutral-500 underline hover:text-neutral-800"
+                >
+                  Download script (.txt)
+                </button>
+              </div>
+              {revealedScripts[part.id] && (
                 <p className="whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-sm">
                   {part.passageText}
                 </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setRevealedScripts((prev) => ({ ...prev, [part.id]: true }))
-                  }
-                  className="text-xs text-neutral-500 underline hover:text-neutral-800"
-                >
-                  Show script (only after listening, for review)
-                </button>
               )}
             </div>
           )}
