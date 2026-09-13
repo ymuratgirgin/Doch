@@ -5,12 +5,20 @@
 // Google's REST endpoint caps each request's input at 5000 bytes of UTF-8
 // text — a Hörverstehen Teil 2 interview script (~450-600 words) can get
 // close to that, so long text is split into sentence-aligned chunks under
-// the cap and the resulting MP3s are concatenated. Raw MP3 frames
-// concatenate cleanly and play back as one continuous stream in a
-// standard <audio> element.
+// the cap. The real telc exam uses multiple speakers (Teil 1's 5 different
+// people, Teil 2's interviewer/interviewee dialogue) — per spec §3.6 the
+// model labels each speaker "Herr <Name>:"/"Frau <Name>:", which is parsed
+// here into ordered turns, each synthesized with a voice matching that
+// speaker's gender (a distinct voice per person, not just per gender, and
+// with no fixed pairing — two speakers can be the same gender). All the
+// resulting MP3s are concatenated in order; raw MP3 frames concatenate
+// cleanly and play back as one continuous stream in a standard <audio>
+// element.
 
 const MAX_CHUNK_BYTES = 4500; // headroom under Google's 5000-byte cap
-const VOICE_NAME = "de-DE-Neural2-B";
+const DEFAULT_VOICE = "de-DE-Neural2-B";
+const MALE_VOICES = ["de-DE-Neural2-B", "de-DE-Neural2-D"];
+const FEMALE_VOICES = ["de-DE-Neural2-A", "de-DE-Neural2-C", "de-DE-Neural2-F"];
 
 function utf8ByteLength(text: string): number {
   return Buffer.byteLength(text, "utf-8");
@@ -35,7 +43,55 @@ function splitIntoChunks(text: string): string[] {
   return chunks;
 }
 
-async function synthesizeChunk(text: string, apiKey: string): Promise<Buffer> {
+type SpeakerTurn = { voice: string; text: string };
+
+// Matches a speaker label at the start of a line, e.g. "Frau Keller:" or
+// "Herr Bauer:" (per spec §3.6). Only the gender title is meaningful here —
+// the name just distinguishes one "Herr" from another so each gets their
+// own voice rather than collapsing onto a single shared male/female voice.
+const SPEAKER_LABEL = /^(Herr|Frau)\s+[A-ZÄÖÜ][\wÄÖÜäöüß-]*\s*:\s*/;
+
+function splitIntoSpeakerTurns(text: string): SpeakerTurn[] {
+  const withoutPauseMarkers = text.replace(/\(Pause\)/gi, ". ");
+
+  // Split right before each speaker-label line, keeping the label attached
+  // to the text that follows it up to the next label (or end of script).
+  const segments = withoutPauseMarkers.split(
+    /(?=^(?:Herr|Frau)\s+[A-ZÄÖÜ][\wÄÖÜäöüß-]*\s*:)/m
+  );
+
+  const voiceByLabel = new Map<string, string>();
+  let nextMaleIndex = 0;
+  let nextFemaleIndex = 0;
+
+  function voiceFor(label: string, gender: "Herr" | "Frau"): string {
+    const existing = voiceByLabel.get(label);
+    if (existing) return existing;
+    const voice =
+      gender === "Herr"
+        ? MALE_VOICES[nextMaleIndex++ % MALE_VOICES.length]
+        : FEMALE_VOICES[nextFemaleIndex++ % FEMALE_VOICES.length];
+    voiceByLabel.set(label, voice);
+    return voice;
+  }
+
+  const turns: SpeakerTurn[] = [];
+  for (const segment of segments) {
+    const match = segment.match(SPEAKER_LABEL);
+    if (match) {
+      const gender = match[1] as "Herr" | "Frau";
+      const spokenText = segment.slice(match[0].length).trim();
+      if (spokenText) turns.push({ voice: voiceFor(match[0], gender), text: spokenText });
+    } else if (segment.trim()) {
+      // No speaker label (Teil 3's impersonal announcements, or content
+      // generated before this convention existed) — one flat default voice.
+      turns.push({ voice: DEFAULT_VOICE, text: segment.trim() });
+    }
+  }
+  return turns.length > 0 ? turns : [{ voice: DEFAULT_VOICE, text: withoutPauseMarkers.trim() }];
+}
+
+async function synthesizeChunk(text: string, apiKey: string, voice: string): Promise<Buffer> {
   const res = await fetch(
     `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
     {
@@ -43,7 +99,7 @@ async function synthesizeChunk(text: string, apiKey: string): Promise<Buffer> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         input: { text },
-        voice: { languageCode: "de-DE", name: VOICE_NAME },
+        voice: { languageCode: "de-DE", name: voice },
         audioConfig: { audioEncoding: "MP3", speakingRate: 0.95 },
       }),
     }
@@ -62,7 +118,15 @@ export async function synthesizeGermanSpeech(text: string): Promise<Buffer> {
   const apiKey = process.env.GOOGLE_TTS_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_TTS_API_KEY is not configured");
 
-  const chunks = splitIntoChunks(text);
-  const buffers = await Promise.all(chunks.map((chunk) => synthesizeChunk(chunk, apiKey)));
-  return Buffer.concat(buffers);
+  const turns = splitIntoSpeakerTurns(text);
+  const turnBuffers = await Promise.all(
+    turns.map(async (turn) => {
+      const chunks = splitIntoChunks(turn.text);
+      const chunkBuffers = await Promise.all(
+        chunks.map((chunk) => synthesizeChunk(chunk, apiKey, turn.voice))
+      );
+      return Buffer.concat(chunkBuffers);
+    })
+  );
+  return Buffer.concat(turnBuffers);
 }

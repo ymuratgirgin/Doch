@@ -65,9 +65,9 @@ Purpose: this document is a complete instruction set for generating original, fa
 - Leftover words must be tempting near-synonyms or same-class words (e.g. include both DAMIT and DESHALB, WANN and WENN).
 
 ### 3.6 Hörverstehen (items 41–60)
-**Primary workflow:** the generator writes full scripts; the learner converts them to audio with an online text-to-speech app, then answers while listening. Scripts must therefore be TTS-ready:
+**Primary workflow:** the app synthesizes these scripts into audio automatically, using a distinct, gender-matched voice per labeled speaker (see below) — the learner just presses play. Scripts must therefore be TTS-ready, and a fallback (converting the script with an external TTS tool, or reading it aloud) always remains available if playback isn't:
 - Output each Teil's script as its own clearly delimited block ("Hörtext Teil 1", etc.), containing ONLY the words to be spoken — no task instructions, no item statements, no stage directions inside the block.
-- Separate speakers/segments so they can be pasted as individual TTS clips: in Teil 1 and Teil 3, label segments "Text 41" … "Text 45" (one clip each); in Teil 2, prefix turns with speaker names (e.g. "Journalist:" / "Frau Weber:") — ideally converted as two alternating voices, or as one clip if the app supports only one voice.
+- Mark who is speaking so each person gets a distinct, correctly-gendered voice: in Teil 1, start each of the 5 monologues with "Herr <Nachname>:" or "Frau <Nachname>:". In Teil 2, label every turn the same way for BOTH the journalist and the interviewee. **Do not default to a fixed gender pattern** (e.g. always male interviewer + female guest) — pick each speaker's gender freely and independently; two men, two women, or any mix are all equally realistic. Teil 3 needs no speaker labels (impersonal announcements).
 - Mark pauses with a line break and "(Pause)" between segments; the learner inserts silence or simply pauses playback there.
 - Keep spoken-language features (na ja, ehm, contractions) light enough that TTS pronounces them naturally.
 - Place the richtig/falsch statements OUTSIDE the script blocks (with the tasks), and remind the learner to generate/play audio per the exam rules: Teil 1 once, Teil 2 and 3 twice.
