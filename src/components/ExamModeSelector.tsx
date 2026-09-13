@@ -30,6 +30,20 @@ export default function ExamModeSelector({
     setLoading(true);
     setError(null);
     setProgress(null);
+
+    // Generation is a single streaming request that can run for a couple of
+    // minutes — on mobile Safari/Chrome, locking the screen or backgrounding
+    // the tab kills the connection mid-stream (surfacing as an opaque "Load
+    // failed"/network error), so hold a wake lock for the duration where the
+    // API exists. Best-effort: unsupported browsers and denied locks just
+    // no-op, they don't block generation.
+    let wakeLock: { release: () => Promise<void> } | null = null;
+    try {
+      wakeLock = await navigator.wakeLock?.request("screen");
+    } catch {
+      // Ignore — e.g. not supported, or the page isn't visible yet.
+    }
+
     try {
       const res = await fetch("/api/exams/generate", {
         method: "POST",
@@ -80,9 +94,21 @@ export default function ExamModeSelector({
       router.push(`/exams/${examId}`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      // A generic "Load failed"/"Failed to fetch" is the browser's wording
+      // for the connection itself dying mid-stream (screen lock, backgrounded
+      // tab, network switch) rather than anything the server reported —
+      // surface that distinction instead of the opaque browser text.
+      const message =
+        err instanceof TypeError
+          ? "Connection lost while generating (this can happen if your screen locked or you switched apps). Nothing was saved — try again and keep this tab open until it finishes."
+          : err instanceof Error
+            ? err.message
+            : "Something went wrong";
+      setError(message);
       setLoading(false);
       setProgress(null);
+    } finally {
+      wakeLock?.release().catch(() => {});
     }
   }
 

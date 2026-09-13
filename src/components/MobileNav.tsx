@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LogoutButton from "@/components/LogoutButton";
 
 export default function MobileNav({
@@ -12,6 +12,17 @@ export default function MobileNav({
   userName: string;
 }) {
   const [open, setOpen] = useState(false);
+
+  // The panel is positioned absolutely, not fixed, so it already scrolls
+  // away with the header — but nothing closed it when a scroll started, so
+  // it stayed open and floated over the page content underneath as you
+  // scrolled past it. Close it as soon as the page moves.
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
+  }, [open]);
 
   return (
     <div className="sm:hidden">
