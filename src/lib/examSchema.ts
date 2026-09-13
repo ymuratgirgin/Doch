@@ -63,6 +63,15 @@ export function getItemNumber(teilLabel: string | null | undefined, indexInPart:
   return start !== undefined ? start + indexInPart : indexInPart + 1;
 }
 
+// The model sometimes bakes its own item number into a question's prompt
+// text (real telc exams number the situations, e.g. "11. Sie suchen..."),
+// but the app always computes and displays the authoritative number itself
+// from the blueprint above — strip any leading number the model added so
+// it isn't shown twice (e.g. "11. 11. Sie suchen...").
+export function stripLeadingItemNumber(prompt: string): string {
+  return prompt.replace(/^\s*\d{1,3}[.):]\s*/, "");
+}
+
 // Solo-adapted Mündlicher Ausdruck (spec §3.8 is a paired oral exam; we
 // adapt each Teil to a monologue). Official per-criterion caps are
 // Ausdrucksfähigkeit/Aufgabenbewältigung/Formale Richtigkeit/Aussprache at
