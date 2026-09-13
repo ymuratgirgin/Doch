@@ -37,6 +37,11 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
+    // The client only shows a generic fallback message when this fails
+    // (see ListeningPlayer) — log the real reason server-side so a 502
+    // here is actually diagnosable from Vercel's runtime logs instead of
+    // just showing up as an opaque status code.
+    console.error(`[tts] synthesis failed: ${reason}`);
     return NextResponse.json({ error: `Speech synthesis failed: ${reason}` }, { status: 502 });
   }
 }
