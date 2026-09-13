@@ -8,12 +8,16 @@ function maxPlaysForTeil(teilLabel: string | null): number {
   return 2;
 }
 
-// Strip "(Pause)" markers and segment labels — those are for a real TTS
-// workflow's clip boundaries, not meant to be read/spoken aloud.
+// Strip "(Pause)" markers, segment labels, and "Herr/Frau Name:" speaker
+// labels — those are script directions for splitting into per-speaker TTS
+// clips (see src/lib/tts.ts), not meant to be read aloud. Only used for the
+// single-voice browser-speech fallback; the server TTS path needs the raw
+// script (speaker labels intact) to assign each person their own voice.
 function cleanScript(script: string): string {
   return script
     .replace(/\(Pause\)/gi, ". ")
     .replace(/^Text \d+:?/gim, "")
+    .replace(/^(Herr|Frau)\s+[A-ZÄÖÜ][\wÄÖÜäöüß-]*\s*:\s*/gim, "")
     .trim();
 }
 
@@ -99,10 +103,14 @@ export default function ListeningPlayer({
     if (!serverError) {
       setLoadingAudio(true);
       try {
+        // Send the raw script, not cleanScript(script) — the server needs
+        // the "Herr/Frau Name:" speaker labels intact to assign each
+        // person a distinct voice (see splitIntoSpeakerTurns in
+        // src/lib/tts.ts). It strips its own pause/label markers.
         const res = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: cleanScript(script) }),
+          body: JSON.stringify({ text: script }),
         });
         if (!res.ok) throw new Error("tts request failed");
         const blob = await res.blob();
