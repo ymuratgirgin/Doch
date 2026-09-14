@@ -67,7 +67,17 @@ type SpeakerTurn = { voice: string; text: string };
 // "Herr Bauer:" (per spec §3.6). Only the gender title is meaningful here —
 // the name just distinguishes one "Herr" from another so each gets their
 // own voice rather than collapsing onto a single shared male/female voice.
-const SPEAKER_LABEL = /^(Herr|Frau)\s+[A-ZÄÖÜ][\wÄÖÜäöüß-]*\s*:\s*/;
+//
+// The name portion is "whatever non-colon text follows Herr/Frau up to the
+// next colon" (bounded to a sane length), not a single capitalized word —
+// a title or a first+last name ("Frau Dr. Seiffert:", "Herr Klaus Mayer:")
+// wouldn't match a stricter pattern at all, and when that happens the whole
+// line — literal label included — falls through into the plain-text branch
+// below and gets synthesized as spoken audio, so the TTS ends up reading
+// the person's name/title out loud instead of it being parsed as a label.
+// examSchema.ts's neutralizeSpeakerNames and ListeningPlayer.tsx's
+// cleanScript use the identical shape for the same reason.
+const SPEAKER_LABEL = /^(Herr|Frau)\s+[^\n:]{1,60}:\s*/;
 
 function splitIntoSpeakerTurns(text: string): SpeakerTurn[] {
   // Replacing "(Pause)" with a period made sense when the whole script was
@@ -82,9 +92,7 @@ function splitIntoSpeakerTurns(text: string): SpeakerTurn[] {
 
   // Split right before each speaker-label line, keeping the label attached
   // to the text that follows it up to the next label (or end of script).
-  const segments = withoutPauseMarkers.split(
-    /(?=^(?:Herr|Frau)\s+[A-ZÄÖÜ][\wÄÖÜäöüß-]*\s*:)/m
-  );
+  const segments = withoutPauseMarkers.split(/(?=^(?:Herr|Frau)\s+[^\n:]{1,60}:)/m);
 
   const voiceByLabel = new Map<string, string>();
   let nextMaleIndex = 0;

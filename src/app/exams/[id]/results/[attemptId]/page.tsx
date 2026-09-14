@@ -8,6 +8,7 @@ import { computePassEstimate } from "@/lib/passEstimate";
 import { resolveMatchingAnswer } from "@/lib/matching";
 import { getItemNumber, stripLeadingItemNumber } from "@/lib/examSchema";
 import { parseWritingPrompt } from "@/lib/writingPrompt";
+import ListeningPlayer from "@/components/ListeningPlayer";
 const CRITERION_LABELS: Record<string, string> = {
   aufgabenbewaeltigung: "Aufgabenbewältigung",
   kommunikativeGestaltung: "Kommunikative Gestaltung",
@@ -70,6 +71,9 @@ export default async function ResultsPage({
       {attempt.exam.parts.map((part) => (
         <div key={part.id} className="space-y-3">
           <h2 className="text-lg font-semibold">{part.teilLabel ?? part.type}</h2>
+          {part.type === "LISTENING" && part.passageText && (
+            <ListeningPlayer script={part.passageText} teilLabel={part.teilLabel} unlimited />
+          )}
           {part.questions.map((q, i) => {
             const answer = answersByQuestionId.get(q.id);
             const criteria: Record<string, Criterion> | null = answer?.criteriaJson
