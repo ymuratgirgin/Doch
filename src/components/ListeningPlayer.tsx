@@ -35,14 +35,18 @@ export default function ListeningPlayer({
   script: string;
   teilLabel: string | null;
   // For post-exam review: the real exam only lets you hear each Teil once
-  // or twice and never lets you pause, but once the exam is over there's no
-  // reason to keep enforcing that — allow unlimited replays with a real
-  // pause/resume (not just stop-and-restart) for the learner's convenience.
+  // or twice, but once the exam is over there's no reason to keep enforcing
+  // that — allow unlimited fresh listens too. Pausing and resuming (see
+  // below) is always free in both modes, exam or review.
   unlimited?: boolean;
 }) {
   const { t } = useI18n();
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [playing, setPlaying] = useState(false);
+  // True once a listen has been paused mid-way (not finished, not fresh) —
+  // resuming it is free and doesn't touch playCount, unlike starting a new
+  // listen from the very beginning.
+  const [paused, setPaused] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [playCount, setPlayCount] = useState(0);
   const [serverError, setServerError] = useState(false);
@@ -86,8 +90,14 @@ export default function ListeningPlayer({
     if (germanVoice) utterance.voice = germanVoice;
     utterance.lang = germanVoice?.lang ?? "de-DE";
     utterance.rate = 0.95;
-    utterance.onend = () => setPlaying(false);
-    utterance.onerror = () => setPlaying(false);
+    utterance.onend = () => {
+      setPlaying(false);
+      setPaused(false);
+    };
+    utterance.onerror = () => {
+      setPlaying(false);
+      setPaused(false);
+    };
     utteranceRef.current = utterance;
 
     window.speechSynthesis.cancel();
@@ -95,39 +105,50 @@ export default function ListeningPlayer({
     return true;
   }
 
-  function playCachedAudio(url: string) {
-    // In unlimited/review mode, reuse the same <audio> element when it's
-    // already loaded with this url so pressing play after pause resumes
-    // from where it left off instead of restarting. During the timed exam
-    // (unlimited=false) each explicit play() is a fresh, fully-counted
-    // listen, so that case keeps creating a new element every time.
-    if (unlimited && audioElRef.current && audioElRef.current.src === url) {
-      void audioElRef.current.play();
-      return;
-    }
+  // Always a fresh listen from the start — used whenever play() decides
+  // this isn't a resume (see there). A new element each time keeps this
+  // simple and avoids any lingering state from a previous listen.
+  function playFreshCachedAudio(url: string) {
     const audio = new Audio(url);
-    audio.onended = () => setPlaying(false);
-    audio.onerror = () => setPlaying(false);
+    audio.onended = () => {
+      setPlaying(false);
+      setPaused(false);
+    };
+    audio.onerror = () => {
+      setPlaying(false);
+      setPaused(false);
+    };
     audioElRef.current = audio;
     void audio.play();
   }
 
   async function play() {
-    if (!unlimited && (playCount >= maxPlays || loadingAudio)) return;
-    if (unlimited && loadingAudio) return;
+    if (loadingAudio) return;
 
-    if (audioUrlRef.current) {
+    // Resume a paused, not-yet-finished listen in place — this is always
+    // free (doesn't touch playCount) in both exam and review mode, since
+    // it's the same listen continuing, not a new one.
+    if (audioElRef.current && !audioElRef.current.ended && audioElRef.current.currentTime > 0) {
       setPlaying(true);
-      if (!unlimited) setPlayCount((c) => c + 1);
-      playCachedAudio(audioUrlRef.current);
+      setPaused(false);
+      void audioElRef.current.play();
+      return;
+    }
+    if (speechSupported && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setPlaying(true);
+      setPaused(false);
       return;
     }
 
-    // Resume a paused browser-speech utterance in place rather than
-    // restarting it from the beginning.
-    if (unlimited && speechSupported && window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
+    // Anything past this point starts a brand-new listen from the
+    // beginning, which is what the once/twice cap actually limits.
+    if (playCount >= maxPlays) return;
+
+    if (audioUrlRef.current) {
       setPlaying(true);
+      setPlayCount((c) => c + 1);
+      playFreshCachedAudio(audioUrlRef.current);
       return;
     }
 
@@ -149,8 +170,8 @@ export default function ListeningPlayer({
         audioUrlRef.current = url;
         setLoadingAudio(false);
         setPlaying(true);
-        if (!unlimited) setPlayCount((c) => c + 1);
-        playCachedAudio(url);
+        setPlayCount((c) => c + 1);
+        playFreshCachedAudio(url);
         return;
       } catch {
         // Server TTS isn't configured/reachable — remember that for this
@@ -162,23 +183,17 @@ export default function ListeningPlayer({
 
     if (playWithBrowserSpeech()) {
       setPlaying(true);
-      if (!unlimited) setPlayCount((c) => c + 1);
+      setPlayCount((c) => c + 1);
     }
   }
 
-  // Timed-exam mode: fully abandon playback (can't resume — each play() is
-  // a separate counted listen anyway).
-  function stop() {
-    audioElRef.current?.pause();
-    window.speechSynthesis?.cancel();
-    setPlaying(false);
-  }
-
-  // Review mode: pause in place, keeping position for a true resume.
+  // Pauses in place — never a full stop. Resuming (see play() above) picks
+  // up right where this left off and doesn't cost another play.
   function pause() {
     audioElRef.current?.pause();
     if (speechSupported) window.speechSynthesis.pause();
     setPlaying(false);
+    setPaused(true);
   }
 
   if (!speechSupported && serverError) {
@@ -189,22 +204,22 @@ export default function ListeningPlayer({
     );
   }
 
+  const outOfPlays = !paused && playCount >= maxPlays;
+
   return (
     <div className="space-y-2 rounded-md border border-neutral-200 bg-neutral-50 p-3">
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={playing ? (unlimited ? pause : stop) : play}
-          disabled={loadingAudio || (!unlimited && !playing && playCount >= maxPlays)}
+          onClick={playing ? pause : play}
+          disabled={loadingAudio || (!playing && outOfPlays)}
           className="rounded-md bg-orange-300 px-3 py-1.5 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
         >
           {loadingAudio
             ? t.listening.loading
             : playing
-              ? unlimited
-                ? t.listening.pause
-                : t.listening.stop
-              : !unlimited && playCount >= maxPlays
+              ? t.listening.pause
+              : outOfPlays
                 ? t.listening.noPlaysLeft
                 : t.listening.play}
         </button>
