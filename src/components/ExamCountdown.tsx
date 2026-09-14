@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/components/LanguageProvider";
 
 function daysUntil(dateStr: string): number {
   const target = new Date(dateStr);
@@ -12,6 +13,7 @@ function daysUntil(dateStr: string): number {
 
 export default function ExamCountdown({ examDate }: { examDate: string | null }) {
   const router = useRouter();
+  const { t, locale } = useI18n();
   const [editing, setEditing] = useState(!examDate);
   const [value, setValue] = useState(examDate ? examDate.slice(0, 10) : "");
   const [saving, setSaving] = useState(false);
@@ -31,18 +33,15 @@ export default function ExamCountdown({ examDate }: { examDate: string | null })
     }
   }
 
+  const dateLocale = locale === "de" ? "de-DE" : locale === "tr" ? "tr-TR" : "en-US";
+
   if (editing) {
     return (
       <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
         <p className="font-medium">
-          {examDate ? "Update your exam date" : "When is your telc B1 exam?"}
+          {examDate ? t.examCountdown.updateDate : t.examCountdown.whenIsExam}
         </p>
-        {!examDate && (
-          <p className="mt-1">
-            Haven&apos;t registered yet? Book your exam soon so you have a
-            real deadline to train toward.
-          </p>
-        )}
+        {!examDate && <p className="mt-1">{t.examCountdown.registerHint}</p>}
         <div className="mt-2 flex gap-2">
           <input
             type="date"
@@ -55,14 +54,14 @@ export default function ExamCountdown({ examDate }: { examDate: string | null })
             disabled={saving}
             className="rounded-md bg-orange-300 px-3 py-1.5 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
           >
-            {saving ? "…" : "Save"}
+            {saving ? "…" : t.examCountdown.save}
           </button>
           {examDate && (
             <button
               onClick={() => setEditing(false)}
               className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
             >
-              Cancel
+              {t.examCountdown.cancel}
             </button>
           )}
         </div>
@@ -75,15 +74,12 @@ export default function ExamCountdown({ examDate }: { examDate: string | null })
     <div className="flex items-center justify-between rounded-md border border-neutral-200 bg-white px-4 py-3">
       <p className="text-sm">
         {days > 0 ? (
-          <>
-            <span className="text-lg font-semibold">{days}</span> day{days === 1 ? "" : "s"} until
-            your telc B1 exam ({new Date(examDate!).toLocaleDateString()})
-          </>
+          t.examCountdown.daysUntil(days, new Date(examDate!).toLocaleDateString(dateLocale))
         ) : days === 0 ? (
-          <span className="font-semibold">Your exam is today — good luck!</span>
+          <span className="font-semibold">{t.examCountdown.examToday}</span>
         ) : (
           <span className="text-neutral-500">
-            Exam date ({new Date(examDate!).toLocaleDateString()}) has passed.
+            {t.examCountdown.examPassed(new Date(examDate!).toLocaleDateString(dateLocale))}
           </span>
         )}
       </p>
@@ -91,7 +87,7 @@ export default function ExamCountdown({ examDate }: { examDate: string | null })
         onClick={() => setEditing(true)}
         className="text-xs text-neutral-500 underline hover:text-neutral-800"
       >
-        Edit
+        {t.examCountdown.editBtn}
       </button>
     </div>
   );

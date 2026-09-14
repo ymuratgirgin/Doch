@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import LogoutButton from "@/components/LogoutButton";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useI18n } from "@/components/LanguageProvider";
 
 export default function MobileNav({
   navLinks,
@@ -11,6 +13,7 @@ export default function MobileNav({
   navLinks: { href: string; label: string }[];
   userName: string;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
   // The panel is positioned absolutely, not fixed, so it already scrolls
@@ -29,7 +32,7 @@ export default function MobileNav({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label={open ? "Close menu" : "Open menu"}
+        aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
         aria-expanded={open}
         className="flex h-11 w-11 items-center justify-center rounded-md text-blue-900"
       >
@@ -58,6 +61,9 @@ export default function MobileNav({
               </Link>
             ))}
           </nav>
+          <div className="mt-2 flex items-center justify-between border-t border-blue-100 px-2 pt-3 text-sm">
+            <LanguageSwitcher />
+          </div>
           <div className="mt-2 flex items-center justify-between border-t border-blue-100 px-2 pt-3 text-sm">
             <span className="text-blue-700">{userName}</span>
             <LogoutButton />

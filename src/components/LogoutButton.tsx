@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/components/LanguageProvider";
 
 export default function LogoutButton() {
   const router = useRouter();
+  const { t } = useI18n();
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -16,7 +18,7 @@ export default function LogoutButton() {
       onClick={handleLogout}
       className="text-sm text-blue-700 hover:text-blue-900"
     >
-      Log out
+      {t.common.logOut}
     </button>
   );
 }

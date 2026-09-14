@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/LanguageProvider";
 
 type FlashCard = {
   progressId: string;
@@ -21,6 +22,7 @@ type FlashCard = {
 };
 
 export default function FlashcardsStudy() {
+  const { t } = useI18n();
   const [cards, setCards] = useState<FlashCard[] | null>(null);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -68,11 +70,11 @@ export default function FlashcardsStudy() {
         body: JSON.stringify({ word: newWord.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to add word");
+      if (!res.ok) throw new Error(data.error ?? t.flashcards.failedToAdd);
       setNewWord("");
       await loadQueue();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Something went wrong");
+      setAddError(err instanceof Error ? err.message : t.common.somethingWrong);
     } finally {
       setAdding(false);
     }
@@ -82,20 +84,17 @@ export default function FlashcardsStudy() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Flashcards</h1>
-          <p className="mt-1 text-neutral-600">
-            Prioritized from words you&apos;ve used incorrectly, words due
-            for review, and words you&apos;ve added yourself.
-          </p>
+          <h1 className="text-2xl font-semibold">{t.flashcards.title}</h1>
+          <p className="mt-1 text-neutral-600">{t.flashcards.subtitle}</p>
           <Link href="/vocab" className="mt-1 inline-block text-sm text-blue-700 underline hover:text-blue-900">
-            Browse the full vocabulary list →
+            {t.flashcards.browseFullList}
           </Link>
         </div>
         <button
           onClick={() => setShowAddForm((s) => !s)}
           className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100"
         >
-          {showAddForm ? "Close" : "+ Add word"}
+          {showAddForm ? t.flashcards.closeBtn : t.flashcards.addWordBtn}
         </button>
       </div>
 
@@ -105,7 +104,7 @@ export default function FlashcardsStudy() {
             type="text"
             value={newWord}
             onChange={(e) => setNewWord(e.target.value)}
-            placeholder="Type a German word…"
+            placeholder={t.flashcards.wordPlaceholder}
             className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
           <button
@@ -113,34 +112,31 @@ export default function FlashcardsStudy() {
             disabled={adding || !newWord.trim()}
             className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
           >
-            {adding ? "Adding…" : "Add"}
+            {adding ? t.flashcards.adding : t.flashcards.addBtn}
           </button>
         </form>
       )}
       {addError && <p className="text-sm text-red-600">{addError}</p>}
 
       {cards === null ? (
-        <p className="text-neutral-500">Loading…</p>
+        <p className="text-neutral-500">{t.flashcards.loading}</p>
       ) : cards.length === 0 ? (
         <p className="rounded-md border border-neutral-200 bg-white px-4 py-6 text-center text-neutral-500">
-          No words in your bank yet. Take a writing exam or add a word above
-          to get started.
+          {t.flashcards.noWordsYet}
         </p>
       ) : index >= cards.length ? (
         <div className="rounded-md border border-green-200 bg-green-50 px-4 py-6 text-center text-green-900">
-          <p className="font-medium">Session complete — nice work!</p>
+          <p className="font-medium">{t.flashcards.sessionComplete}</p>
           <button
             onClick={loadQueue}
             className="mt-3 rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400"
           >
-            Start another session
+            {t.flashcards.startAnother}
           </button>
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-neutral-500">
-            Card {index + 1} of {cards.length}
-          </p>
+          <p className="text-sm text-neutral-500">{t.flashcards.cardXofY(index + 1, cards.length)}</p>
           <div
             onClick={() => setFlipped((f) => !f)}
             className="flex min-h-48 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-neutral-200 bg-white p-8 text-center"
@@ -156,38 +152,38 @@ export default function FlashcardsStudy() {
                 {cards[index].meaning ? (
                   <p className="text-lg text-neutral-800">{cards[index].meaning}</p>
                 ) : (
-                  <p className="text-sm text-neutral-400">No meaning saved yet</p>
+                  <p className="text-sm text-neutral-400">{t.flashcards.noMeaningSaved}</p>
                 )}
 
                 <p className="text-sm text-blue-700">
-                  Türkçe:{" "}
+                  {t.flashcards.turkishLabel}{" "}
                   {cards[index].translationTr ? (
                     <span className="font-medium">{cards[index].translationTr}</span>
                   ) : (
-                    <span className="text-neutral-400">unbekannt</span>
+                    <span className="text-neutral-400">{t.flashcards.unknownValue}</span>
                   )}
                 </p>
 
                 {cards[index].wordType === "noun" && (
                   <p className="text-sm text-neutral-600">
-                    Plural:{" "}
+                    {t.flashcards.pluralLabel}{" "}
                     {cards[index].plural ? (
                       <span className="font-medium">die {cards[index].plural}</span>
                     ) : (
-                      <span className="text-neutral-400">unbekannt</span>
+                      <span className="text-neutral-400">{t.flashcards.unknownValue}</span>
                     )}
                   </p>
                 )}
 
                 {cards[index].wordType === "verb" && (
                   <p className="text-sm text-neutral-600">
-                    Partizip II:{" "}
+                    {t.flashcards.partizipLabel}{" "}
                     <span className="font-medium">
-                      {cards[index].pastParticiple ?? "unbekannt"}
+                      {cards[index].pastParticiple ?? t.flashcards.unknownValue}
                     </span>{" "}
-                    ({cards[index].auxiliaryVerb ?? "haben/sein?"}) · Präteritum:{" "}
+                    ({cards[index].auxiliaryVerb ?? "haben/sein?"}) · {t.flashcards.praeteritumLabel}{" "}
                     <span className="font-medium">
-                      {cards[index].praeteritum ?? "unbekannt"}
+                      {cards[index].praeteritum ?? t.flashcards.unknownValue}
                     </span>
                   </p>
                 )}
@@ -203,7 +199,7 @@ export default function FlashcardsStudy() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-neutral-400">Click to reveal</p>
+              <p className="text-sm text-neutral-400">{t.flashcards.clickToReveal}</p>
             )}
           </div>
 
@@ -213,13 +209,13 @@ export default function FlashcardsStudy() {
                 onClick={() => review(false)}
                 className="rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
               >
-                Nochmal (didn&apos;t know)
+                {t.flashcards.didntKnow}
               </button>
               <button
                 onClick={() => review(true)}
                 className="rounded-md border border-green-300 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
               >
-                Kannte ich (knew it)
+                {t.flashcards.knewIt}
               </button>
             </div>
           )}

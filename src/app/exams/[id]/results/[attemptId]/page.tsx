@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { getLocale } from "@/lib/getLocale";
+import { dictionaries } from "@/lib/i18n";
 import { computePassEstimate } from "@/lib/passEstimate";
 import { resolveMatchingAnswer } from "@/lib/matching";
 import { getItemNumber, stripLeadingItemNumber } from "@/lib/examSchema";
@@ -22,6 +24,8 @@ export default async function ResultsPage({
 }) {
   const user = await requireUser();
   const { attemptId } = await params;
+  const locale = await getLocale();
+  const t = dictionaries[locale];
 
   const attempt = await prisma.attempt.findUnique({
     where: { id: attemptId },
@@ -42,11 +46,8 @@ export default async function ResultsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">{attempt.exam.title} — Results</h1>
-        <p className="mt-1 text-neutral-600">
-          Score:{" "}
-          {attempt.score !== null ? `${Math.round(attempt.score)}%` : "Not graded"}
-        </p>
+        <h1 className="text-2xl font-semibold">{attempt.exam.title} — {t.resultsPage.resultsSuffix}</h1>
+        <p className="mt-1 text-neutral-600">{t.resultsPage.score(attempt.score)}</p>
       </div>
 
       {passEstimate && (
@@ -58,15 +59,10 @@ export default async function ResultsPage({
           }`}
         >
           <p className="font-medium">
-            Estimated pass likelihood: {passEstimate.estimatedProbability}%{" "}
-            ({passEstimate.passing ? "currently passing" : "not yet passing"} the
-            60% written threshold)
+            {t.resultsPage.passLikelihood(passEstimate.estimatedProbability, passEstimate.passing)}
           </p>
           <p className="mt-1 text-xs opacity-80">
-            Based on {passEstimate.basis}. This is a rough estimate from your
-            written-skill scores only — the telc exam also requires ≥60% on
-            the separately-graded speaking (mündlicher Ausdruck) component,
-            which this app doesn&apos;t assess.
+            {t.resultsPage.passBasisWritten(passEstimate.basis)}
           </p>
         </div>
       )}
@@ -112,32 +108,32 @@ export default async function ResultsPage({
                   <p className="text-sm font-medium">{numberLabel}</p>
                 )}
                 <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">
-                  Your answer:{" "}
+                  {t.resultsPage.yourAnswer}
                   {answer?.responseText ? (
                     q.questionType === "matching"
                       ? resolveMatchingAnswer(answer.responseText, q.options)
                       : answer.responseText
                   ) : (
-                    <em>No answer</em>
+                    <em>{t.resultsPage.noAnswer}</em>
                   )}
                 </p>
 
                 {answer?.isCorrect !== null && answer?.isCorrect !== undefined && (
                   <p className={`mt-1 text-sm ${answer.isCorrect ? "text-green-600" : "text-red-600"}`}>
-                    {answer.isCorrect ? "Correct" : "Incorrect"}
+                    {answer.isCorrect ? t.resultsPage.correct : t.resultsPage.incorrect}
                     {!answer.isCorrect &&
                       q.correctAnswer &&
-                      ` — expected: ${
+                      t.resultsPage.expected(
                         q.questionType === "matching"
                           ? resolveMatchingAnswer(q.correctAnswer, q.options)
                           : q.correctAnswer
-                      }`}
+                      )}
                   </p>
                 )}
 
                 {answer?.scoreAwarded !== null && answer?.scoreAwarded !== undefined && (
                   <p className="mt-1 text-sm text-neutral-600">
-                    {answer.scoreAwarded.toFixed(1)} / {q.maxPoints.toFixed(1)} points
+                    {t.resultsPage.pointsOf(answer.scoreAwarded, q.maxPoints)}
                   </p>
                 )}
 
@@ -173,7 +169,7 @@ export default async function ResultsPage({
           href="/mistakes"
           className="rounded-md border border-neutral-300 px-4 py-2 text-sm hover:bg-neutral-100"
         >
-          Review all past mistakes
+          {t.resultsPage.reviewMistakes}
         </Link>
       </div>
     </div>
