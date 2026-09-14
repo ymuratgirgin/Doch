@@ -54,7 +54,13 @@ export default function ScoreTrendChart({
 
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full" role="img" aria-label="Score trend by skill">
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="w-full"
+        style={{ aspectRatio: `${WIDTH} / ${HEIGHT}` }}
+        role="img"
+        aria-label="Score trend by skill"
+      >
         {gridLines.map((g) => (
           <g key={g}>
             <line
