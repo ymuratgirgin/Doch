@@ -213,6 +213,7 @@ export type Dictionary = {
   listening: {
     loading: string;
     stop: string;
+    pause: string;
     noPlaysLeft: string;
     play: string;
     playedTimes: (count: number, max: number) => string;
@@ -452,6 +453,7 @@ const en: Dictionary = {
   listening: {
     loading: "Loading…",
     stop: "Stop",
+    pause: "Pause",
     noPlaysLeft: "No plays left",
     play: "▶ Play",
     playedTimes: (count, max) =>
@@ -692,6 +694,7 @@ const tr: Dictionary = {
   listening: {
     loading: "Yükleniyor…",
     stop: "Durdur",
+    pause: "Duraklat",
     noPlaysLeft: "Hak kalmadı",
     play: "▶ Oynat",
     playedTimes: (count, max) =>
@@ -932,6 +935,7 @@ const de: Dictionary = {
   listening: {
     loading: "Wird geladen…",
     stop: "Stopp",
+    pause: "Pause",
     noPlaysLeft: "Keine Wiedergaben mehr",
     play: "▶ Abspielen",
     playedTimes: (count, max) =>
