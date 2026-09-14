@@ -13,7 +13,7 @@ export default function LanguageSwitcher({ className }: { className?: string }) 
       onChange={(e) => setLocale(e.target.value as typeof locale)}
       className={
         className ??
-        "rounded-md border border-blue-200 bg-white px-2 py-1 text-sm text-blue-900"
+        "min-h-11 rounded-md border border-blue-200 bg-white px-2 py-1 text-sm text-blue-900"
       }
     >
       {LOCALES.map((l) => (
