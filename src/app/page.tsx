@@ -1,54 +1,35 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import { getLocale } from "@/lib/getLocale";
+import { dictionaries } from "@/lib/i18n";
 import { computeStreak } from "@/lib/streak";
 import LoginForm from "@/components/LoginForm";
-
-const SECTIONS: { href: string; emoji: string; title: string; description: string }[] = [
-  {
-    href: "/exams",
-    emoji: "📝",
-    title: "Mock Exam",
-    description: "Generate a fresh telc B1 practice exam and take it",
-  },
-  {
-    href: "/flashcards",
-    emoji: "🗂️",
-    title: "Flashcards",
-    description: "Review vocabulary, prioritized by what you need most",
-  },
-  {
-    href: "/mistakes",
-    emoji: "💡",
-    title: "Learn from Mistakes",
-    description: "Grouped explanations with fresh examples",
-  },
-  {
-    href: "/progress",
-    emoji: "📊",
-    title: "Statistics",
-    description: "Scores, streaks, and vocabulary growth over time",
-  },
-];
 
 export default async function HomePage() {
   const user = await getCurrentUser();
   const streak = user ? await computeStreak(user.id) : 0;
+  const locale = await getLocale();
+  const t = dictionaries[locale];
+
+  const SECTIONS = [
+    { href: "/exams", emoji: "📝", title: t.home.sections.examTitle, description: t.home.sections.examDesc },
+    { href: "/flashcards", emoji: "🗂️", title: t.home.sections.flashTitle, description: t.home.sections.flashDesc },
+    { href: "/mistakes", emoji: "💡", title: t.home.sections.mistakesTitle, description: t.home.sections.mistakesDesc },
+    { href: "/progress", emoji: "📊", title: t.home.sections.statsTitle, description: t.home.sections.statsDesc },
+  ];
 
   return (
     <div className="space-y-10">
       <div className="space-y-2 text-center">
         <h1 className="text-4xl font-bold text-blue-900">Doch!</h1>
         {user ? (
-          <p className="text-neutral-500">Willkommen, {user.name}</p>
+          <p className="text-neutral-500">{t.home.welcome(user.name)}</p>
         ) : (
-          <p className="text-neutral-500">
-            Practice for the telc B1 German exam with fresh, LLM-generated
-            mock exams and instant feedback.
-          </p>
+          <p className="text-neutral-500">{t.home.tagline}</p>
         )}
         {user && streak > 0 && (
           <div className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-sm font-medium text-orange-800">
-            🔥 {streak} day{streak === 1 ? "" : "s"} streak
+            {t.home.streak(streak)}
           </div>
         )}
       </div>

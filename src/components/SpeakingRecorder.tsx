@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/components/LanguageProvider";
 
 // Minimal ambient shape for the Web Speech "SpeechRecognition" API — not
 // part of the standard TS DOM lib, and shipped prefixed in some browsers.
@@ -38,6 +39,7 @@ export default function SpeakingRecorder({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const { t } = useI18n();
   const [supported] = useState(() => getSpeechRecognitionConstructor() !== null);
   const [recording, setRecording] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -96,19 +98,16 @@ export default function SpeakingRecorder({
               : "bg-orange-300 text-orange-950 hover:bg-orange-400"
           }`}
         >
-          {recording ? "⏹ Stop recording" : "🎤 Record your answer (Deutsch)"}
+          {recording ? t.speaking.stopRecording : t.speaking.recordAnswer}
         </button>
       ) : (
-        <p className="text-xs text-amber-700">
-          Speech-to-text isn&apos;t supported in this browser — type your
-          answer instead.
-        </p>
+        <p className="text-xs text-amber-700">{t.speaking.notSupported}</p>
       )}
       <textarea
         rows={6}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Your spoken answer appears here as text — review and edit before submitting."
+        placeholder={t.speaking.placeholder}
         className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
       />
     </div>

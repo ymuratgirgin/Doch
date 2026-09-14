@@ -1,34 +1,30 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { getLocale } from "@/lib/getLocale";
+import { dictionaries } from "@/lib/i18n";
 import { computePassEstimate } from "@/lib/passEstimate";
 import { computeStreak } from "@/lib/streak";
 import ScoreTrendChart from "@/components/ScoreTrendChart";
-
-const MODE_LABELS: Record<string, string> = {
-  full: "Complete Mock Exams",
-  reading: "Reading",
-  listening: "Listening",
-  writing: "Writing",
-  grammar: "Grammar",
-  speaking: "Speaking",
-};
-
-// "full" was previously left out here, so a Complete Mock Exam's score
-// never showed up anywhere on this page — the trend chart only ever
-// queried the four single-skill modes.
-const TREND_MODES: { mode: string; label: string }[] = [
-  { mode: "full", label: "Complete Mock Exam" },
-  { mode: "reading", label: "Reading" },
-  { mode: "listening", label: "Listening" },
-  { mode: "writing", label: "Writing" },
-  { mode: "grammar", label: "Grammar" },
-];
 
 type PartBreakdown = { label: string; earned: number; maxPoints: number; graded: boolean };
 
 export default async function ProgressPage() {
   const user = await requireUser();
+  const locale = await getLocale();
+  const t = dictionaries[locale];
+  const MODE_LABELS = t.modeLabels;
+
+  // "full" was previously left out here, so a Complete Mock Exam's score
+  // never showed up anywhere on this page — the trend chart only ever
+  // queried the four single-skill modes.
+  const TREND_MODES: { mode: string; label: string }[] = [
+    { mode: "full", label: t.modeLabels.full },
+    { mode: "reading", label: t.modeLabels.reading },
+    { mode: "listening", label: t.modeLabels.listening },
+    { mode: "writing", label: t.modeLabels.writing },
+    { mode: "grammar", label: t.modeLabels.grammar },
+  ];
 
   const [sessions, attempts, vocabCounts, vocabBankSize, personalVocabSize, passEstimate, streak, trendData] = await Promise.all([
     prisma.activitySession.findMany({ where: { userId: user.id } }),
@@ -119,16 +115,18 @@ export default async function ProgressPage() {
   // someone opened the Flashcards page rather than the actual word count.
   const totalTracked = vocabBankSize + personalVocabSize;
 
+  const dateLocale = locale === "de" ? "de-DE" : locale === "tr" ? "tr-TR" : "en-US";
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-blue-900">Statistics</h1>
+          <h1 className="text-2xl font-semibold text-blue-900">{t.progressPage.title}</h1>
           <p className="mt-1 text-neutral-600">{user.name}</p>
         </div>
         {streak > 0 && (
           <div className="rounded-md border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-800">
-            🔥 {streak} day{streak === 1 ? "" : "s"} streak
+            {t.home.streak(streak)}
           </div>
         )}
       </div>
@@ -142,32 +140,31 @@ export default async function ProgressPage() {
           }`}
         >
           <p className="font-medium">
-            Estimated pass likelihood: {passEstimate.estimatedProbability}% —{" "}
-            {passEstimate.percentage.toFixed(0)}% on the written portion
-            ({passEstimate.passing ? "≥60%, currently passing" : "below the 60% threshold"})
+            {t.progressPage.passLikelihood(
+              passEstimate.estimatedProbability,
+              passEstimate.percentage,
+              passEstimate.passing
+            )}
           </p>
-          <p className="mt-1 text-xs opacity-80">
-            Based on {passEstimate.basis}. Written-skills only — speaking
-            isn&apos;t assessed by this app but is graded independently.
-          </p>
+          <p className="mt-1 text-xs opacity-80">{t.progressPage.passBasis(passEstimate.basis)}</p>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Time on site" value={formatMinutes(totalMinutes)} />
-        <StatCard label="Exams completed" value={String(attempts.length)} />
-        <StatCard label="Words known" value={`${knownCount} / ${totalTracked}`} />
+        <StatCard label={t.progressPage.timeOnSite} value={formatMinutes(totalMinutes)} />
+        <StatCard label={t.progressPage.examsCompleted} value={String(attempts.length)} />
+        <StatCard label={t.progressPage.wordsKnown} value={`${knownCount} / ${totalTracked}`} />
       </div>
 
       <div>
-        <h2 className="mb-2 font-medium">Score trend</h2>
+        <h2 className="mb-2 font-medium">{t.progressPage.scoreTrend}</h2>
         <ScoreTrendChart data={trendData} />
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4">
-        <h2 className="font-medium">Exam history</h2>
+        <h2 className="font-medium">{t.progressPage.examHistory}</h2>
         {history.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-500">No completed exams yet.</p>
+          <p className="mt-2 text-sm text-neutral-500">{t.progressPage.noCompletedExams}</p>
         ) : (
           <ul className="mt-3 space-y-4">
             {history.map((h) => (
@@ -181,11 +178,11 @@ export default async function ProgressPage() {
                       {h.title}
                     </Link>
                     <span className="ml-2 text-xs text-neutral-500">
-                      {h.submittedAt.toLocaleDateString()}
+                      {h.submittedAt.toLocaleDateString(dateLocale)}
                     </span>
                   </div>
                   <span className="text-lg font-semibold">
-                    {h.score !== null ? `${Math.round(h.score)}%` : "Not graded"}
+                    {h.score !== null ? `${Math.round(h.score)}%` : t.progressPage.notGraded}
                   </span>
                 </div>
                 <ul className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-neutral-600 sm:grid-cols-2">
@@ -193,7 +190,7 @@ export default async function ProgressPage() {
                     <li key={i} className="flex justify-between gap-2">
                       <span>{p.label}</span>
                       <span className="whitespace-nowrap">
-                        {p.graded ? `${p.earned.toFixed(1)} / ${p.maxPoints.toFixed(1)}` : "pending"}
+                        {p.graded ? `${p.earned.toFixed(1)} / ${p.maxPoints.toFixed(1)}` : t.progressPage.pending}
                       </span>
                     </li>
                   ))}
@@ -205,7 +202,7 @@ export default async function ProgressPage() {
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4">
-        <h2 className="font-medium">Exams by type</h2>
+        <h2 className="font-medium">{t.progressPage.examsByType}</h2>
         <ul className="mt-2 space-y-1 text-sm text-neutral-600">
           {Object.entries(MODE_LABELS).map(([mode, label]) => (
             <li key={mode} className="flex justify-between">
@@ -217,18 +214,18 @@ export default async function ProgressPage() {
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4">
-        <h2 className="font-medium">Vocabulary</h2>
+        <h2 className="font-medium">{t.progressPage.vocabulary}</h2>
         <ul className="mt-2 space-y-1 text-sm text-neutral-600">
           <li className="flex justify-between">
-            <span>Known</span>
+            <span>{t.progressPage.known}</span>
             <span>{knownCount}</span>
           </li>
           <li className="flex justify-between">
-            <span>Learning</span>
+            <span>{t.progressPage.learning}</span>
             <span>{learningCount}</span>
           </li>
           <li className="flex justify-between">
-            <span>Total tracked</span>
+            <span>{t.progressPage.totalTracked}</span>
             <span>{totalTracked}</span>
           </li>
         </ul>

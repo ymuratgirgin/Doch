@@ -1,9 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { getLocale } from "@/lib/getLocale";
+import { dictionaries } from "@/lib/i18n";
 import { resolveMatchingAnswer } from "@/lib/matching";
 
 export default async function MistakesPage() {
   const user = await requireUser();
+  const locale = await getLocale();
+  const t = dictionaries[locale];
 
   const wrongAnswers = await prisma.answer.findMany({
     where: {
@@ -31,16 +35,13 @@ export default async function MistakesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-blue-900">Learn from Mistakes</h1>
-        <p className="mt-1 text-neutral-600">
-          Grouped by topic, most frequent first. Each explanation includes
-          fresh examples — read them, don&apos;t just skim the rule.
-        </p>
+        <h1 className="text-2xl font-semibold text-blue-900">{t.mistakesPage.title}</h1>
+        <p className="mt-1 text-neutral-600">{t.mistakesPage.subtitle}</p>
       </div>
 
       {groups.length === 0 && vocabMistakes.length === 0 ? (
         <p className="rounded-md border border-neutral-200 bg-white px-4 py-6 text-center text-neutral-500">
-          No mistakes recorded yet — take an exam to get started.
+          {t.mistakesPage.noMistakes}
         </p>
       ) : (
         <>
@@ -49,30 +50,27 @@ export default async function MistakesPage() {
               <h2 className="text-lg font-semibold">
                 {topic}{" "}
                 <span className="text-sm font-normal text-neutral-500">
-                  ({answers.length} time{answers.length === 1 ? "" : "s"})
+                  ({t.mistakesPage.times(answers.length)})
                 </span>
               </h2>
               {answers.map((a) => (
                 <div key={a.id} className="rounded-lg border border-neutral-200 bg-white p-4">
                   <p className="text-sm font-medium">{a.question.prompt}</p>
                   <p className="mt-1 text-sm text-neutral-600">
-                    Your answer:{" "}
+                    {t.mistakesPage.yourAnswer}
                     {a.responseText ? (
                       a.question.questionType === "matching"
                         ? resolveMatchingAnswer(a.responseText, a.question.options)
                         : a.responseText
                     ) : (
-                      <em>No answer</em>
+                      <em>{t.mistakesPage.noAnswer}</em>
                     )}
-                    {a.question.correctAnswer && (
-                      <>
-                        {" "}
-                        — correct:{" "}
-                        {a.question.questionType === "matching"
+                    {a.question.correctAnswer &&
+                      t.mistakesPage.correctSuffix(
+                        a.question.questionType === "matching"
                           ? resolveMatchingAnswer(a.question.correctAnswer, a.question.options)
-                          : a.question.correctAnswer}
-                      </>
-                    )}
+                          : a.question.correctAnswer
+                      )}
                   </p>
                   {a.grammarExplanation && (
                     <p className="mt-2 whitespace-pre-wrap rounded-md bg-amber-50 p-3 text-sm text-amber-900">
@@ -87,9 +85,9 @@ export default async function MistakesPage() {
           {vocabMistakes.length > 0 && (
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">
-                Vocabulary usage mistakes{" "}
+                {t.mistakesPage.vocabMistakesTitle}{" "}
                 <span className="text-sm font-normal text-neutral-500">
-                  (from your writing answers)
+                  {t.mistakesPage.vocabMistakesSubtitle}
                 </span>
               </h2>
               {vocabMistakes.map((w) => (

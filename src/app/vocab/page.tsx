@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getLocale } from "@/lib/getLocale";
+import { dictionaries } from "@/lib/i18n";
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -9,6 +11,8 @@ export default async function VocabPage({
   searchParams: Promise<{ q?: string; level?: string; letter?: string }>;
 }) {
   const { q, level, letter } = await searchParams;
+  const locale = await getLocale();
+  const t = dictionaries[locale];
 
   const wordFilter =
     q || letter
@@ -34,10 +38,8 @@ export default async function VocabPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Vocabulary</h1>
-        <p className="mt-1 text-neutral-600">
-          {words.length} word{words.length === 1 ? "" : "s"}.
-        </p>
+        <h1 className="text-2xl font-semibold">{t.vocabPage.title}</h1>
+        <p className="mt-1 text-neutral-600">{t.vocabPage.wordCount(words.length)}</p>
       </div>
 
       <form className="flex gap-2" action="/vocab">
@@ -45,14 +47,14 @@ export default async function VocabPage({
           type="text"
           name="q"
           defaultValue={q}
-          placeholder="Search word…"
+          placeholder={t.vocabPage.searchPlaceholder}
           className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm"
         />
         <button
           type="submit"
           className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400"
         >
-          Search
+          {t.vocabPage.searchBtn}
         </button>
       </form>
 
@@ -63,7 +65,7 @@ export default async function VocabPage({
             !letter ? "bg-blue-200 font-semibold text-blue-900" : "text-blue-700 hover:bg-blue-50"
           }`}
         >
-          All
+          {t.vocabPage.all}
         </Link>
         {ALPHABET.map((l) => (
           <Link
@@ -82,18 +84,17 @@ export default async function VocabPage({
 
       {words.length === 0 ? (
         <p className="rounded-md border border-neutral-200 bg-white px-4 py-6 text-center text-neutral-500">
-          No vocabulary loaded yet. Seed the database from your Telc/Goethe
-          B1 word list (see <code>prisma/seed.ts</code>).
+          {t.vocabPage.noVocab}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-neutral-100 text-neutral-600">
               <tr>
-                <th className="px-4 py-2">Word</th>
-                <th className="px-4 py-2">Type</th>
-                <th className="px-4 py-2">Türkçe</th>
-                <th className="px-4 py-2">Examples</th>
+                <th className="px-4 py-2">{t.vocabPage.colWord}</th>
+                <th className="px-4 py-2">{t.vocabPage.colType}</th>
+                <th className="px-4 py-2">{t.vocabPage.colTurkish}</th>
+                <th className="px-4 py-2">{t.vocabPage.colExamples}</th>
               </tr>
             </thead>
             <tbody>

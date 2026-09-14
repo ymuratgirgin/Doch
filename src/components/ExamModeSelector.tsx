@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ExamMode } from "@/lib/examSchema";
+import { useI18n } from "@/components/LanguageProvider";
 
 type ModeOption = {
   mode: ExamMode;
@@ -19,6 +20,7 @@ export default function ExamModeSelector({
   defaultMode: ExamMode;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [selected, setSelected] = useState<ExamMode>(defaultMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +55,9 @@ export default function ExamModeSelector({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to generate exam");
+        throw new Error(data.error ?? t.examModeSelector.genericError);
       }
-      if (!res.body) throw new Error("No response body");
+      if (!res.body) throw new Error(t.examModeSelector.noResponseBody);
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -78,7 +80,7 @@ export default function ExamModeSelector({
 
           if (event.type === "start") {
             total = event.total;
-            setProgress({ done: 0, total, label: "Starting…" });
+            setProgress({ done: 0, total, label: t.examModeSelector.startingLabel });
           } else if (event.type === "section_done") {
             doneCount++;
             setProgress({ done: doneCount, total, label: event.section });
@@ -90,7 +92,7 @@ export default function ExamModeSelector({
         }
       }
 
-      if (!examId) throw new Error("Generation ended without producing an exam");
+      if (!examId) throw new Error(t.examModeSelector.generationEndedError);
       router.push(`/exams/${examId}`);
       router.refresh();
     } catch (err) {
@@ -100,10 +102,10 @@ export default function ExamModeSelector({
       // surface that distinction instead of the opaque browser text.
       const message =
         err instanceof TypeError
-          ? "Connection lost while generating (this can happen if your screen locked or you switched apps). Nothing was saved — try again and keep this tab open until it finishes."
+          ? t.examModeSelector.connectionLostError
           : err instanceof Error
             ? err.message
-            : "Something went wrong";
+            : t.common.somethingWrong;
       setError(message);
       setLoading(false);
       setProgress(null);
@@ -133,7 +135,7 @@ export default function ExamModeSelector({
             >
               {opt.recommended && !isSelected && (
                 <span className="absolute -top-2 right-3 rounded-full bg-blue-200 px-2 py-0.5 text-[10px] font-medium text-blue-900">
-                  Recommended today
+                  {t.examModeSelector.recommendedToday}
                 </span>
               )}
               <span className="font-medium">{opt.title}</span>
@@ -152,7 +154,7 @@ export default function ExamModeSelector({
             disabled={loading}
             className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
           >
-            {loading ? "Generating…" : "Mock Exam Generate"}
+            {loading ? t.examModeSelector.generating : t.examModeSelector.generateBtn}
           </button>
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
@@ -172,9 +174,9 @@ export default function ExamModeSelector({
             <p className="text-xs text-neutral-500">
               {progress
                 ? progress.done >= progress.total
-                  ? "Saving your exam…"
-                  : `${progress.done}/${progress.total} done — just generated: ${progress.label}`
-                : "Starting… this can take a couple of minutes"}
+                  ? t.examModeSelector.savingLabel
+                  : t.examModeSelector.progressLabel(progress.done, progress.total, progress.label)
+                : t.examModeSelector.startingHint}
             </p>
           </div>
         )}

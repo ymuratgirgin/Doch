@@ -7,6 +7,8 @@ import SpeakingRecorder from "@/components/SpeakingRecorder";
 import { parseMatchingOption } from "@/lib/matching";
 import { getItemNumber, stripLeadingItemNumber } from "@/lib/examSchema";
 import { parseWritingPrompt } from "@/lib/writingPrompt";
+import { useI18n } from "@/components/LanguageProvider";
+import type { Dictionary } from "@/lib/i18n";
 
 type Question = {
   id: string;
@@ -34,14 +36,13 @@ type Exam = {
 // Static exam-mechanics notes (ours, not model-generated) — shown once per
 // relevant part type. General facts about the exam format, not sourced
 // from any single learner's account.
-const PART_TIPS: Record<string, string> = {
-  LISTENING:
-    "Tip: the first items in each Hörverstehen Teil are worth just as many points as the rest — get ready before you press play so you don't miss an easy one.",
-  SPEAKING:
-    "Tip: in the real paired exam, the examiner may end the conversation once they're confident in your level — that's normal, not a sign you did poorly.",
-  WRITING:
-    "Structure tip: Einleitung (1-2 sentences on why you're writing) → all 4 Leitpunkte, each with a connector (Zuerst, Außerdem, Des Weiteren, Schließlich) → Schluss (e.g. \"Ich freue mich auf Ihre/deine Antwort\"). This skeleton works for almost any telc B1 Schreiben task.",
-};
+function partTips(t: Dictionary): Record<string, string> {
+  return {
+    LISTENING: t.examTaker.partTips.listening,
+    SPEAKING: t.examTaker.partTips.speaking,
+    WRITING: t.examTaker.partTips.writing,
+  };
+}
 
 // Sprachbausteine passages embed gap numbers inline, e.g. "...es geht (21)
 // gut." The real telc exam prints each gap as a numbered blank with its
@@ -174,6 +175,8 @@ function buildRenderBlocks(questions: Question[]): RenderBlock[] {
 
 export default function ExamTaker({ exam }: { exam: Exam }) {
   const router = useRouter();
+  const { t } = useI18n();
+  const PART_TIPS = partTips(t);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -209,7 +212,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
 
         router.push(`/exams/${exam.id}/results/${submitData.attemptId}`);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        setError(err instanceof Error ? err.message : t.common.somethingWrong);
         setSubmitting(false);
       }
     },
@@ -226,7 +229,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to start attempt");
+        setError(data.error ?? t.examTaker.failedToStart);
         return;
       }
       setAttemptId(data.attemptId);
@@ -282,23 +285,19 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
               : "border-neutral-200 bg-white text-neutral-700"
           }`}
         >
-          Time remaining: {formatClock(remainingSeconds)}
+          {t.examTaker.timeRemaining(formatClock(remainingSeconds))}
         </div>
       )}
 
       {listeningParts.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          <span>
-            Built-in playback uses your browser&apos;s speech synthesis, which
-            can sound robotic. Download the scripts to generate better audio
-            with an external text-to-speech tool instead.
-          </span>
+          <span>{t.examTaker.browserSpeechWarning}</span>
           <button
             type="button"
             onClick={downloadAllListeningScripts}
             className="ml-auto whitespace-nowrap rounded-md border border-blue-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-900 hover:bg-blue-100"
           >
-            Download all scripts (.txt)
+            {t.examTaker.downloadAllScripts}
           </button>
         </div>
       )}
@@ -336,7 +335,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                     }
                     className="text-xs text-neutral-500 underline hover:text-neutral-800"
                   >
-                    Show script (only after listening, for review)
+                    {t.examTaker.showScript}
                   </button>
                 )}
                 <button
@@ -344,7 +343,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                   onClick={() => downloadListeningScript(part)}
                   className="text-xs text-neutral-500 underline hover:text-neutral-800"
                 >
-                  Download script (.txt)
+                  {t.examTaker.downloadScript}
                 </button>
               </div>
               {revealedScripts[part.id] && (
@@ -372,7 +371,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
                 return (
                   <div className="rounded-md border border-neutral-200 bg-white p-3">
                     <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
-                      Word bank
+                      {t.examTaker.wordBank}
                     </p>
                     <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
                       {wordBank.map(({ letter, body }) => (
@@ -540,7 +539,7 @@ export default function ExamTaker({ exam }: { exam: Exam }) {
         disabled={submitting || !attemptId}
         className="rounded-md bg-orange-300 px-4 py-2 text-sm font-medium text-orange-950 hover:bg-orange-400 disabled:opacity-50"
       >
-        {submitting ? "Submitting…" : "Submit exam"}
+        {submitting ? t.examTaker.submitting : t.examTaker.submitExam}
       </button>
     </div>
   );

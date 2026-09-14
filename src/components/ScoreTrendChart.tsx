@@ -1,7 +1,11 @@
+"use client";
+
 // Static inline-SVG line chart — no hover/tooltip layer (kept intentionally
 // simple for a personal-scale dashboard). Colors are the dataviz skill's
 // validated categorical palette, light-mode chrome only (this app doesn't
 // yet support a dark theme).
+
+import { useI18n } from "@/components/LanguageProvider";
 
 type Series = { key: string; label: string; color: string; scores: number[] };
 
@@ -21,6 +25,7 @@ export default function ScoreTrendChart({
 }: {
   data: { mode: string; label: string; scores: number[] }[];
 }) {
+  const { t } = useI18n();
   const palette = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#9163d4"];
   const series: Series[] = data
     .filter((d) => d.scores.length > 0)
@@ -29,7 +34,7 @@ export default function ScoreTrendChart({
   if (series.length === 0) {
     return (
       <p className="rounded-md border border-neutral-200 bg-white px-4 py-6 text-center text-sm text-neutral-500">
-        No graded attempts yet — take a practice exam to start your trend.
+        {t.scoreTrendChart.noAttempts}
       </p>
     );
   }
@@ -67,7 +72,7 @@ export default function ScoreTrendChart({
           </g>
         ))}
         <text x={WIDTH - PAD.right} y={y(60) - 4} textAnchor="end" fontSize={9} fill={CHROME.mutedText}>
-          60% pass threshold
+          {t.scoreTrendChart.passThreshold}
         </text>
 
         {series.map((s) => {
@@ -101,9 +106,7 @@ export default function ScoreTrendChart({
           </span>
         ))}
       </div>
-      <p className="mt-1 text-xs text-neutral-400">
-        Each line shows your most recent attempts for that skill, oldest to newest.
-      </p>
+      <p className="mt-1 text-xs text-neutral-400">{t.scoreTrendChart.caption}</p>
     </div>
   );
 }
