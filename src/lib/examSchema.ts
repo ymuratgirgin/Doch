@@ -82,7 +82,17 @@ export function stripLeadingItemNumber(prompt: string): string {
 // instruction doesn't always get followed. Rather than relying on prompt
 // compliance alone, strip any name that's actually used as a speaker
 // label in this part's own script wherever it shows up in a statement.
-const SPEAKER_LABEL_GLOBAL = /(Herr|Frau)\s+([A-ZÄÖÜ][\wÄÖÜäöüß-]*)\s*:/g;
+//
+// The name is captured as "whatever non-colon text sits between Herr/Frau
+// and the next colon on that line" (bounded to a sane length), not a
+// single capitalized word — a title or a first+last name ("Frau Dr.
+// Seiffert:", "Herr Klaus Mayer:") wouldn't match a stricter pattern at
+// all, and the exact same shape is used in tts.ts and ListeningPlayer.tsx
+// to recognize and strip these labels before synthesis. If any of the
+// three drift out of sync with a narrower pattern, a label one of them
+// fails to recognize doesn't get treated as a label — it falls through as
+// literal text and gets read aloud by the TTS instead of being stripped.
+const SPEAKER_LABEL_GLOBAL = /(Herr|Frau)\s+([^\n:]{1,60}?):/g;
 
 export function neutralizeSpeakerNames(
   prompt: string,
@@ -94,7 +104,7 @@ export function neutralizeSpeakerNames(
   const regex = new RegExp(SPEAKER_LABEL_GLOBAL);
   let match: RegExpExecArray | null;
   while ((match = regex.exec(passageText))) {
-    labels.add(`${match[1]} ${match[2]}`);
+    labels.add(`${match[1]} ${match[2].trim()}`);
   }
   if (labels.size === 0) return prompt;
 
