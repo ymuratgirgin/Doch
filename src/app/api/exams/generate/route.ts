@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { anthropic, EXAM_GENERATION_MODEL } from "@/lib/anthropic";
 import { EXAM_GENERATION_PROMPT, TELC_B1_SPEC } from "@/lib/prompts";
 import { getUserWeakAreas } from "@/lib/weakAreas";
+import { loadExemplarBlock } from "@/lib/referenceExemplars";
+import { pickRandom } from "@/lib/random";
 import {
   EXAM_JSON_INSTRUCTIONS,
   GeneratedPart,
@@ -29,17 +31,6 @@ export const maxDuration = 300;
 const ANTHROPIC_CALL_TIMEOUT_MS = 260_000;
 
 const VOCAB_SAMPLE_SIZE = 60;
-
-// Unbiased partial Fisher–Yates: n distinct random items from `items`.
-function pickRandom<T>(items: T[], n: number): T[] {
-  const pool = items.slice();
-  const count = Math.min(n, pool.length);
-  for (let i = 0; i < count; i++) {
-    const j = i + Math.floor(Math.random() * (pool.length - i));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool.slice(0, count);
-}
 
 const MODE_TITLES: Record<ExamMode, string> = {
   full: "Telc B1 – Vollständige Mock-Prüfung",
@@ -116,6 +107,10 @@ async function generateSection(
   // instructions, weak areas, the randomized vocab sample) stays outside
   // the cached prefix since it varies per call.
   const specBlock = `--- SPECIFICATION ---\n\n${TELC_B1_SPEC}`;
+  // Reference exemplars vary per call (random pick from the private store),
+  // so they sit after the cache breakpoint with the rest of the task block.
+  // Empty when the store is empty — then the prompt is unchanged.
+  const exemplarBlock = await loadExemplarBlock(group.teils);
   const taskBlock = [
     "--- TASK ---",
     `Generate ONLY this section of the exam: ${group.label}.`,
@@ -123,6 +118,7 @@ async function generateSection(
     groupKey === "speaking" ? SPEAKING_ADAPTATION_NOTE : "",
     context.weakAreasText,
     context.vocabText,
+    exemplarBlock,
     EXAM_JSON_INSTRUCTIONS,
   ]
     .filter(Boolean)
