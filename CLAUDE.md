@@ -14,8 +14,10 @@ telc B1 German exam prep app. Generates mock exams from the telc blueprint via C
 - `prisma/schema.prisma` — data model
 - `data/telc-b1-mock-generator-spec.md` — telc B1 blueprint the generator follows verbatim
 - `data/B1_cleaned.json` — B1 vocabulary seed
+- `data/exam-difficulty-notes.md` — our own difficulty calibration per task type (reviewed by the owner; not yet used by the generator)
 - `prompts/` — system prompts for generation and grading
-- `src/lib/` — business logic (weakAreas, passEstimate, flashcards, streak, recommendation, tts)
+- `src/lib/` — business logic (weakAreas, passEstimate, flashcards, streak, recommendation, tts, referenceExemplars, originality)
+- `scripts/` — one-off scripts; `scripts/import-reference.ts` loads the private reference exams and extra vocabulary from `reference/` into Postgres
 - `src/app/` — pages and API routes (home page doubles as landing/dashboard/login, plus exams, vocab, flashcards, mistakes, progress)
 - `docs/specs/` — one spec per change, `YYYY-MM-DD-<name>.md`; `TEMPLATE.md` is the starting point, `README.md` explains the convention
 
@@ -24,7 +26,8 @@ telc B1 German exam prep app. Generates mock exams from the telc blueprint via C
 - Point values per question come from the spec's point table, never from model output.
 - All user-facing text goes through the existing translation mechanism and must exist in all three languages.
 - Exam content is German; explanations, feedback and study material are in the learner's selected language.
-- Never commit copyrighted exam material (official Modelltests, prep-book content) or third-party vocabulary lists. Local copies live in `reference/`, which is git-ignored and never deployed; Vercel builds from GitHub, so anything the live app needs must come from the database. The plan for a private Postgres store is in `docs/specs/2026-09-28-reference-exams.md`.
+- Never commit copyrighted exam material (official Modelltests, prep-book content) or third-party vocabulary lists. Local copies live in `reference/` (`reference/exams/*.json`, `reference/vocab/*.json`), which is git-ignored and never deployed; Vercel builds from GitHub, so the live app reads them only from the database (`ReferenceSection` for exams, `VocabWord` rows with source `einfach-gut-b1` for the extra vocabulary). Details and decisions: `docs/specs/2026-09-28-reference-exams.md`.
+- Reference exams may only shape generation as labelled style/difficulty exemplars in the task block. Generated content must be new, and the originality check in `src/lib/originality.ts` must stay on; it never blocks the learner.
 - Don't refactor unrelated code. One feature per commit.
 
 ## Commands
@@ -32,6 +35,7 @@ telc B1 German exam prep app. Generates mock exams from the telc blueprint via C
 - `npm run lint` and `npx tsc --noEmit` — run both before every commit
 - `npx prisma migrate dev` — create a migration locally
 - `npx prisma db seed` — load the vocab list
+- `npm run import:reference` — load the private reference exams and vocabulary from `reference/` into the database (idempotent; `-- --dry-run` validates the files without a database)
 
 ## Workflow
 1. Read the spec in `docs/specs/` I point you to.

@@ -114,6 +114,17 @@ broken state either way, just a quality difference.
   question are assigned deterministically from the spec's point table,
   never trusted from model output. Generation is biased toward each
   learner's current weak areas (`src/lib/weakAreas.ts`).
+- **Reference exams.** Real practice exams (a telc Übungstest and two prep-book
+  tests) are kept private: the git-ignored `reference/` folder holds them locally
+  and `npm run import:reference` loads them into the `ReferenceSection` table.
+  Each generation call shows the model one stored section per requested Teil as a
+  style and difficulty reference (`src/lib/referenceExemplars.ts`) and checks the
+  result against every stored text (`src/lib/originality.ts`); a Teil that repeats
+  more than 10% of a reference's 5-word sequences, or any 8-word run, is
+  regenerated once. With an empty store generation works exactly as before. The
+  same import adds the Einfach gut B1 word lists to the vocabulary bank (source
+  `einfach-gut-b1`), and the vocabulary hint sent to the model is drawn from the
+  whole bank. Our own difficulty calibration is in `data/exam-difficulty-notes.md`.
 - **Grading** (`src/app/api/attempts/[id]/submit`): objective questions
   (reading/listening/grammar) are auto-graded and scored by the spec's
   point table; every wrong answer gets a cached grammar/topic explanation
@@ -154,5 +165,6 @@ broken state either way, just a quality difference.
 - `data/` — the telc B1 spec and raw vocab source (pulled from `main`).
 - `prompts/` — system prompts for generation and grading.
 - `src/lib/` — generation/grading/flashcards/progress business logic.
+- `scripts/` — maintenance scripts, including the private reference import.
 - `src/app/` — dashboard, exams, vocab, flashcards, mistakes, progress,
   login pages and their API routes.

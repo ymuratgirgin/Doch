@@ -1,6 +1,6 @@
 # Reference exams and vocabulary as private generation sources
 
-Status: open
+Status: in progress (built and verified locally; production rollout pending)
 Date: 2026-09-28
 
 ## Goal
@@ -87,4 +87,35 @@ Answer or ask about these before writing code for the relevant requirement:
 - `CLAUDE.md` and README updated; this file set to `done` with an Outcome section.
 
 ## Outcome
-(Filled in at the end by Claude Code: what was built, what changed from the plan, follow-ups.)
+
+Built on 2026-09-28, one commit each on the working branch:
+
+- `main` history purged of `reference/` (new head `a3c2e42`, tree identical to the old head minus `reference/`), backup bundle kept outside the repo.
+- `89fdf26` git-ignore `/reference/`; `c2127f1` the three verbatim quotes in the blueprint replaced by invented examples; `f3da52e` `CLAUDE.md` states the truth about `reference/`.
+- `b970fcb` vocabulary hint drawn from the whole B1 bank (60 distinct words, unbiased shuffle). Before: only letters A–G, 300 reachable rows; after: every letter in proportion to the bank.
+- `37e2b1c` table `ReferenceSection` (additive migration `20260928213000_add_reference_section`) and `scripts/import-reference.ts` (`npm run import:reference`, idempotent, `--dry-run`). `0cd6dd8` adds the telc speaking sections.
+- `5b16a77` one random reference section per requested Teil goes into the task block as a labelled style/difficulty exemplar (empty store or database error: prompt unchanged). `ce303da` speaking Teil 2 now shows both opposing cards. `b043b70` originality check: more than 10% shared 5-word sequences or any 8-word run triggers one regeneration of that Teil, the less similar version is kept.
+- `8b25fab` the same import adds vocabulary lists; 699 Einfach gut words are enriched (German meaning, Turkish translation, two examples, grammar forms) and load as `VocabWord` rows with source `einfach-gut-b1`, so they appear in flashcards, the vocab page and "words tracked" (1,806 → 2,505).
+- `7dd601d` `data/exam-difficulty-notes.md` (our own text, awaiting the owner's review) with a design for a later "too easy" check.
+
+What changed from the plan:
+- Three reference exams instead of one: the telc Übungstest 1 (PDF and audio) plus two prep-book Übungstests (photos, answer keys, audio transcribed by speech-to-text). Only the telc exam has speaking tasks.
+- The vocabulary batch is 699 words, not about 700 or 994: of the 994 list entries 276 were already in the bank, 17 gender pairs (for example "Bewohner/in") duplicate a base word already there, and 2 entries repeat inside the list. Seven entries came from PDF extraction errors ("fl" ligature) and were corrected; brackets like (DZ) and (Pl.) moved into the meaning; four true multi-word entries are stored as `phrase`.
+- Exemplars sit after the cached specification block, not inside it, because they are picked at random per call.
+- The owner decided to proceed with private use of the third-party texts (no commercial use); revisit before any commercial use or public launch.
+
+Verified: `npm run lint`, `npx tsc --noEmit`; migrations apply on a fresh database with no schema drift; import and re-import change nothing; empty-store and database-down paths return no exemplars; originality check flags verbatim and lightly edited copies, passes an invented text, and flags none of the real exams compared against each other (worst overlap 0.8%); vocabulary import tested on a throwaway seeded database (update, skip and idempotency).
+
+Not verified: a live generation call (no `ANTHROPIC_API_KEY` in the build environment), so the exemplar and originality log lines and the two-card speaking screen still need one look on a real run.
+
+Rollout still to do (the spec is set to `done` after these):
+1. Sync the working branch to `main` (Vercel runs the new migration on deploy).
+2. Run `npm run import:reference` once against the production `DATABASE_URL` from the machine that has `reference/`.
+3. Generate one exam and one speaking practice and check the Vercel logs for `[exam-generate] exemplars=` and `originality` lines.
+
+Recommended follow-ups:
+- Owner reviews `data/exam-difficulty-notes.md` and the Turkish translations; then add the notes to the generation prompt and implement the "too easy" check.
+- Flashcards choose unstudied words in database order, so the 699 new words reach learners after the older ones; interleave them if that is unwanted.
+- More reference exams and any Sprechen tasks from the book; with more exams the random pick gets more varied.
+- The blueprint says speaking cards of 40–60 words, the real ones are 34–37; consider adjusting §3.8.
+- Three code comments still mention the invented name "Frau Dr. Seiffert" as an example label; harmless, can be renamed.
