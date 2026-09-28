@@ -65,15 +65,22 @@ learner has no partner, so adapt each Teil to a monologue:
 - Teil 1 (Einander kennenlernen): give 4-6 prompts/questions an examiner
   would ask (Name, Wohnort, Familie, Beruf/Studium, Sprachen, Hobbys) and
   ask the learner to introduce themselves answering all of them.
-- Teil 2 (Über ein Thema sprechen): give ONE topic and ONE card — a
-  fictional person's 40-60 word quoted opinion. Ask the learner to report
-  the opinion, then give their own view and experience.
+- Teil 2 (Über ein Thema sprechen): give ONE topic and TWO cards as in
+  §3.8 — two fictional people (name, age, job), each with a 40-60 word
+  quoted opinion, the two opinions clearly conflicting. Card A is the
+  learner's own card; card B is what the absent partner read. Put the
+  topic and BOTH cards in the part's "passageText", each card on its own
+  lines and labelled ("Ihre Karte" / "Die Karte Ihres Gesprächspartners
+  bzw. Ihrer Gesprächspartnerin"). The single question's prompt is the
+  task: report card A, react to the partner's opposing opinion on card B,
+  then give their own view and experience.
 - Teil 3 (Gemeinsam etwas planen): give the planning scenario and
   checklist (Wann? Wo? Essen/Getränke? Wer macht was? Wer bezahlt?). Ask
   the learner to propose a complete plan addressing every checklist point,
   as if explaining it to a partner who isn't present.
-Each Teil is ONE "free_text" question whose prompt contains the full
-task (cards/checklist included). Set "type": "SPEAKING".
+Each Teil is ONE "free_text" question. For Teil 1 and Teil 3 its prompt
+contains the full task (checklist included); for Teil 2 the cards are in
+"passageText" and the prompt holds the task. Set "type": "SPEAKING".
 `;
 
 async function generateSection(
