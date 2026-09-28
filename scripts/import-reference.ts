@@ -31,6 +31,9 @@
 //   sprachbausteine-2 text (gaps written as [31]), words {a: WORT}
 //   hoeren-1..3       statements {"41": text}, transcript (string or null)
 //   schreiben         email, points [text]
+//   sprechen-1        instructions, topics [text]
+//   sprechen-2        instructions, topic, cards {A: {text, author}, B: {text, author}}
+//   sprechen-3        scenario, checklist [text], steps [text]
 // Only text is stored; audio and PDFs are never uploaded.
 
 import "dotenv/config";
@@ -53,6 +56,9 @@ const TEIL_SHAPES: Record<string, Record<string, Kind>> = {
   "hoeren-2": { statements: "object", transcript: "string|null" },
   "hoeren-3": { statements: "object", transcript: "string|null" },
   schreiben: { email: "string", points: "array" },
+  "sprechen-1": { instructions: "string", topics: "array" },
+  "sprechen-2": { instructions: "string", topic: "string", cards: "object" },
+  "sprechen-3": { scenario: "string", checklist: "array", steps: "array" },
 };
 
 type Section = {

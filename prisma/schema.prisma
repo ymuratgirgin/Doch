@@ -178,7 +178,7 @@ model ReferenceSection {
   id            String   @id @default(cuid())
   examLabel     String // e.g. "telc-uebungstest-1", "book-uebungstest-2"
   source        String // "telc-pdf" | "prep-book"
-  teil          String // "lesen-1" .. "lesen-3", "sprachbausteine-1|2", "hoeren-1" .. "hoeren-3", "schreiben"
+  teil          String // "lesen-1" .. "lesen-3", "sprachbausteine-1|2", "hoeren-1" .. "hoeren-3", "schreiben", "sprechen-1" .. "sprechen-3"
   contentJson   String // structured section text; shape per teil is documented in scripts/import-reference.ts
   answerKeyJson String? // {"1": "c", ...}; listening uses "+" / "-"; "x" = no matching ad
   spokenNotes   String? // listening only: how the recording is structured (our own words)
