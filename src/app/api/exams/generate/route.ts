@@ -28,6 +28,19 @@ export const maxDuration = 300;
 // message reaching the browser.
 const ANTHROPIC_CALL_TIMEOUT_MS = 260_000;
 
+const VOCAB_SAMPLE_SIZE = 60;
+
+// Unbiased partial Fisher–Yates: n distinct random items from `items`.
+function pickRandom<T>(items: T[], n: number): T[] {
+  const pool = items.slice();
+  const count = Math.min(n, pool.length);
+  for (let i = 0; i < count; i++) {
+    const j = i + Math.floor(Math.random() * (pool.length - i));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
 const MODE_TITLES: Record<ExamMode, string> = {
   full: "Telc B1 – Vollständige Mock-Prüfung",
   reading: "Telc B1 – Leseverstehen Übung",
@@ -209,11 +222,13 @@ export async function POST(req: NextRequest) {
     ? `The learner's current weak areas (per spec §7, bias difficulty/topic toward these where natural, without breaking the format rules): ${weakAreas.map((w) => w.grammarTopic).join(", ")}.`
     : "No weak-area data yet for this learner — use a balanced mix of topics/grammar.";
 
-  const vocabSample = await prisma.vocabWord.findMany({
+  // Sample from the whole B1 bank: only the two short columns are read, so
+  // fetching every row is cheap and every word has the same chance.
+  const bank = await prisma.vocabWord.findMany({
     where: { level: "B1" },
-    take: 300,
+    select: { word: true, article: true },
   });
-  const shuffled = vocabSample.sort(() => Math.random() - 0.5).slice(0, 60);
+  const shuffled = pickRandom(bank, VOCAB_SAMPLE_SIZE);
   const vocabText = shuffled.length
     ? `Sample of the learner's B1 vocabulary bank (prefer these where natural, but do not force them):\n${shuffled
         .map((w) => [w.article, w.word].filter(Boolean).join(" "))
