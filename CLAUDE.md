@@ -24,7 +24,7 @@ telc B1 German exam prep app. Generates mock exams from the telc blueprint via C
 - Point values per question come from the spec's point table, never from model output.
 - All user-facing text goes through the existing translation mechanism and must exist in all three languages.
 - Exam content is German; explanations, feedback and study material are in the learner's selected language.
-- Never commit copyrighted exam material (official Modelltests, prep-book content). Reference exams live in a git-ignored folder.
+- Never commit copyrighted exam material (official Modelltests, prep-book content) or third-party vocabulary lists. Local copies live in `reference/`, which is git-ignored and never deployed; Vercel builds from GitHub, so anything the live app needs must come from the database. The plan for a private Postgres store is in `docs/specs/2026-09-28-reference-exams.md`.
 - Don't refactor unrelated code. One feature per commit.
 
 ## Commands
