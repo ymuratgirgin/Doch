@@ -4,6 +4,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { anthropic, EXAM_GENERATION_MODEL } from "@/lib/anthropic";
 import { EXAM_GENERATION_PROMPT, TELC_B1_SPEC } from "@/lib/prompts";
 import { getUserWeakAreas } from "@/lib/weakAreas";
+import { loadExemplarBlock } from "@/lib/referenceExemplars";
+import { loadReferenceIndex, measureOverlap, overlapScore, partTexts } from "@/lib/originality";
+import { pickRandom } from "@/lib/random";
 import {
   EXAM_JSON_INSTRUCTIONS,
   GeneratedPart,
@@ -27,6 +30,8 @@ export const maxDuration = 300;
 // Vercel silently killing the function at the maxDuration wall with no
 // message reaching the browser.
 const ANTHROPIC_CALL_TIMEOUT_MS = 260_000;
+
+const VOCAB_SAMPLE_SIZE = 60;
 
 const MODE_TITLES: Record<ExamMode, string> = {
   full: "Telc B1 – Vollständige Mock-Prüfung",
@@ -61,20 +66,31 @@ learner has no partner, so adapt each Teil to a monologue:
 - Teil 1 (Einander kennenlernen): give 4-6 prompts/questions an examiner
   would ask (Name, Wohnort, Familie, Beruf/Studium, Sprachen, Hobbys) and
   ask the learner to introduce themselves answering all of them.
-- Teil 2 (Über ein Thema sprechen): give ONE topic and ONE card — a
-  fictional person's 40-60 word quoted opinion. Ask the learner to report
-  the opinion, then give their own view and experience.
+- Teil 2 (Über ein Thema sprechen): give ONE topic and TWO cards as in
+  §3.8 — two fictional people (name, age, job), each with a 40-60 word
+  quoted opinion, the two opinions clearly conflicting. Card A is the
+  learner's own card; card B is what the absent partner read. Put the
+  topic and BOTH cards in the part's "passageText", each card on its own
+  lines and labelled ("Ihre Karte" / "Die Karte Ihres Gesprächspartners
+  bzw. Ihrer Gesprächspartnerin"). The single question's prompt is the
+  task: report card A, react to the partner's opposing opinion on card B,
+  then give their own view and experience.
 - Teil 3 (Gemeinsam etwas planen): give the planning scenario and
   checklist (Wann? Wo? Essen/Getränke? Wer macht was? Wer bezahlt?). Ask
   the learner to propose a complete plan addressing every checklist point,
   as if explaining it to a partner who isn't present.
-Each Teil is ONE "free_text" question whose prompt contains the full
-task (cards/checklist included). Set "type": "SPEAKING".
+Each Teil is ONE "free_text" question. For Teil 1 and Teil 3 its prompt
+contains the full task (checklist included); for Teil 2 the cards are in
+"passageText" and the prompt holds the task. Set "type": "SPEAKING".
 `;
 
-async function generateSection(
+// One model call for the given Teile of a section group. `retryNote` is
+// appended to the task when regenerating a Teil that copied reference text.
+async function generateParts(
   groupKey: keyof typeof SECTION_GROUPS,
-  context: { weakAreasText: string; vocabText: string }
+  context: { weakAreasText: string; vocabText: string },
+  teils: string[],
+  retryNote = ""
 ): Promise<GeneratedPart[]> {
   const group = SECTION_GROUPS[groupKey];
   // Claude Sonnet 5 runs adaptive thinking by default, which eats into
@@ -103,13 +119,19 @@ async function generateSection(
   // instructions, weak areas, the randomized vocab sample) stays outside
   // the cached prefix since it varies per call.
   const specBlock = `--- SPECIFICATION ---\n\n${TELC_B1_SPEC}`;
+  // Reference exemplars vary per call (random pick from the private store),
+  // so they sit after the cache breakpoint with the rest of the task block.
+  // Empty when the store is empty — then the prompt is unchanged.
+  const exemplarBlock = await loadExemplarBlock(teils);
   const taskBlock = [
     "--- TASK ---",
     `Generate ONLY this section of the exam: ${group.label}.`,
-    `Produce exactly these Teil(e), each as one part in the "parts" array, in this order: ${group.teils.join(", ")}.`,
+    `Produce exactly these Teil(e), each as one part in the "parts" array, in this order: ${teils.join(", ")}.`,
     groupKey === "speaking" ? SPEAKING_ADAPTATION_NOTE : "",
     context.weakAreasText,
     context.vocabText,
+    exemplarBlock,
+    retryNote,
     EXAM_JSON_INSTRUCTIONS,
   ]
     .filter(Boolean)
@@ -179,6 +201,55 @@ async function generateSection(
   return parsed.parts;
 }
 
+const REGENERATION_NOTE =
+  "A previous attempt at this Teil repeated wording from the reference exams. Write it again with a clearly different topic, different people, organisations and numbers, and entirely new sentences.";
+
+// Generates a section and checks every part against the private reference
+// exams (src/lib/originality.ts). A Teil that is too similar is regenerated
+// once; the less similar of the two versions is kept, so the learner is
+// never blocked. Skipped when the reference store is empty or unavailable.
+async function generateSection(
+  groupKey: keyof typeof SECTION_GROUPS,
+  context: { weakAreasText: string; vocabText: string }
+): Promise<GeneratedPart[]> {
+  const parts = await generateParts(groupKey, context, SECTION_GROUPS[groupKey].teils);
+  const index = await loadReferenceIndex();
+  if (!index) return parts;
+
+  const measured = parts.map((part) => ({ part, overlap: measureOverlap(partTexts(part), index) }));
+  const flagged = measured.filter((m) => m.overlap.tooSimilar);
+  for (const m of measured) {
+    console.log(
+      `[exam-generate] originality section=${groupKey} teil="${m.part.teilLabel}" ratio=${m.overlap.ratio.toFixed(3)} longRun=${m.overlap.longRun} tooSimilar=${m.overlap.tooSimilar}`
+    );
+  }
+  if (flagged.length === 0) return parts;
+
+  let retry: GeneratedPart[];
+  try {
+    retry = await generateParts(
+      groupKey,
+      context,
+      flagged.map((m) => m.part.teilLabel),
+      REGENERATION_NOTE
+    );
+  } catch (err) {
+    console.warn(`[exam-generate] regeneration failed for section=${groupKey}, keeping first attempt:`, err);
+    return parts;
+  }
+  return measured.map(({ part, overlap }) => {
+    if (!overlap.tooSimilar) return part;
+    const second = retry.find((p) => p.teilLabel === part.teilLabel);
+    if (!second) return part;
+    const secondOverlap = measureOverlap(partTexts(second), index);
+    const keepSecond = overlapScore(secondOverlap) < overlapScore(overlap);
+    console.log(
+      `[exam-generate] originality regenerated teil="${part.teilLabel}" first=${overlap.ratio.toFixed(3)}/${overlap.longRun} second=${secondOverlap.ratio.toFixed(3)}/${secondOverlap.longRun} kept=${keepSecond ? "second" : "first"}`
+    );
+    return keepSecond ? second : part;
+  });
+}
+
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
@@ -209,11 +280,13 @@ export async function POST(req: NextRequest) {
     ? `The learner's current weak areas (per spec §7, bias difficulty/topic toward these where natural, without breaking the format rules): ${weakAreas.map((w) => w.grammarTopic).join(", ")}.`
     : "No weak-area data yet for this learner — use a balanced mix of topics/grammar.";
 
-  const vocabSample = await prisma.vocabWord.findMany({
+  // Sample from the whole B1 bank: only the two short columns are read, so
+  // fetching every row is cheap and every word has the same chance.
+  const bank = await prisma.vocabWord.findMany({
     where: { level: "B1" },
-    take: 300,
+    select: { word: true, article: true },
   });
-  const shuffled = vocabSample.sort(() => Math.random() - 0.5).slice(0, 60);
+  const shuffled = pickRandom(bank, VOCAB_SAMPLE_SIZE);
   const vocabText = shuffled.length
     ? `Sample of the learner's B1 vocabulary bank (prefer these where natural, but do not force them):\n${shuffled
         .map((w) => [w.article, w.word].filter(Boolean).join(" "))
