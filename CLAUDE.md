@@ -43,6 +43,6 @@ telc B1 German exam prep app. Generates mock exams from the telc blueprint via C
 2. Explore the relevant code and summarize what you found and what you assume.
 3. Ask before building if anything is ambiguous, especially data-model changes.
 4. Propose a plan, implement one feature at a time, lint + typecheck, commit, stop for review.
-5. When the spec is finished: set its status to `done` and add an "Outcome" section with a short changelog and recommended follow-ups. Finished specs stay in `docs/specs/` as the project changelog.
+5. When the spec is finished: set its status to `done` and add an "Outcome" section with a short changelog and recommended follow-ups. Finished specs stay in `docs/specs/` as detailed notes and context; the release log is `CHANGELOG.md`.
 6. Before syncing to `main`, add an entry at the top of `CHANGELOG.md` (date, title, what changed in plain language, anything I have to do after the deploy) and include it in the sync. Detailed notes stay in the spec's Outcome section.
 7. If I correct you on something that will recur, tell me so I can add it to this file.
