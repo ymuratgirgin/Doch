@@ -19,6 +19,7 @@ telc B1 German exam prep app. Generates mock exams from the telc blueprint via C
 - `src/lib/` — business logic (weakAreas, passEstimate, flashcards, streak, recommendation, tts, referenceExemplars, originality)
 - `scripts/` — one-off scripts; `scripts/import-reference.ts` loads the private reference exams and extra vocabulary from `reference/` into Postgres
 - `src/app/` — pages and API routes (home page doubles as landing/dashboard/login, plus exams, vocab, flashcards, mistakes, progress)
+- `CHANGELOG.md` — release notes, one entry per sync to `main`, newest first
 - `docs/specs/` — one spec per change, `YYYY-MM-DD-<name>.md`; `TEMPLATE.md` is the starting point, `README.md` explains the convention
 
 ## Rules
@@ -43,4 +44,5 @@ telc B1 German exam prep app. Generates mock exams from the telc blueprint via C
 3. Ask before building if anything is ambiguous, especially data-model changes.
 4. Propose a plan, implement one feature at a time, lint + typecheck, commit, stop for review.
 5. When the spec is finished: set its status to `done` and add an "Outcome" section with a short changelog and recommended follow-ups. Finished specs stay in `docs/specs/` as the project changelog.
-6. If I correct you on something that will recur, tell me so I can add it to this file.
+6. Before syncing to `main`, add an entry at the top of `CHANGELOG.md` (date, title, what changed in plain language, anything I have to do after the deploy) and include it in the sync. Detailed notes stay in the spec's Outcome section.
+7. If I correct you on something that will recur, tell me so I can add it to this file.
