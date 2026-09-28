@@ -60,6 +60,8 @@ Extend the current mistakes page into a proper **Study** page:
 - Reuse the existing explanation cache where possible so this doesn't double the API cost.
 
 ### 6. More source material for harder, more faithful exams
+> Continued in `2026-09-28-reference-exams.md`, which records what exploration found (the generator uses no exam text today; only one reference exam exists) and the decisions made (private storage, vocabulary lists included). Use that file for this feature.
+
 Generated exams are too easy because generation is grounded in a single example plus the spec. This is a design task first:
 - Inspect how the example exam is stored and how it and `data/telc-b1-mock-generator-spec.md` feed the prompts in `prompts/`.
 - Propose a folder layout and format for **multiple** reference exams (official telc/DTZ Modelltests plus ones I add), with per-task difficulty metadata.
