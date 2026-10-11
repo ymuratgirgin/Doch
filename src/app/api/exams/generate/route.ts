@@ -5,6 +5,7 @@ import { anthropic, EXAM_GENERATION_MODEL } from "@/lib/anthropic";
 import { EXAM_GENERATION_PROMPT, TELC_B1_SPEC } from "@/lib/prompts";
 import { getUserWeakAreas } from "@/lib/weakAreas";
 import { loadExemplarBlock } from "@/lib/referenceExemplars";
+import { loadDifficultyBlock } from "@/lib/difficultyNotes";
 import { loadReferenceIndex, measureOverlap, overlapScore, partTexts } from "@/lib/originality";
 import { pickRandom } from "@/lib/random";
 import {
@@ -130,6 +131,7 @@ async function generateParts(
     groupKey === "speaking" ? SPEAKING_ADAPTATION_NOTE : "",
     context.weakAreasText,
     context.vocabText,
+    loadDifficultyBlock(teils),
     exemplarBlock,
     retryNote,
     EXAM_JSON_INSTRUCTIONS,
