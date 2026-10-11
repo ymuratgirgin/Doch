@@ -4,6 +4,16 @@ Newest first. One entry per release, meaning one sync to `main` (Vercel deploys 
 
 To add an entry: before syncing to `main`, put a new section at the top with the date, a short title and the commit hash once it is known, and list what changed for learners and for the owner. Mention anything the owner has to do after the deploy.
 
+## 2026-10-12 — Sprachbausteine fix and dark theme
+**Fixed**
+- Sprachbausteine exams generated after the reference-exams release showed gaps as plain "[21]" text instead of dropdowns. The cause was the gap format used in the reference exemplars, which the model copied. Exemplars now use the format the page expects, new exams are corrected when they are saved, and the page also reads the bracket form, so exams that were already generated show their dropdowns again.
+
+**Added**
+- Dark theme with a Light / Dark / System choice in the header (desktop) and in the mobile menu. Light stays the default; the choice is remembered per browser. The statistics chart follows the theme. Labels are in English, Turkish and German.
+
+**Owner action**
+- None. Open an existing broken Sprachbausteine exam to confirm the dropdowns are back.
+
 ## 2026-10-11 — difficulty notes now guide generation
 **Changed**
 - Each generation call now includes our difficulty notes for the parts being generated (text lengths, how to build wrong options, answer-key balance, gap variety). New exams should come out closer to the real exam's difficulty. The notes add roughly 200 to 750 tokens per call; the cached specification is unchanged.
