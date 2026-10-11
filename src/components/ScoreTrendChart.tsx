@@ -2,18 +2,18 @@
 
 // Static inline-SVG line chart — no hover/tooltip layer (kept intentionally
 // simple for a personal-scale dashboard). Colors are the dataviz skill's
-// validated categorical palette, light-mode chrome only (this app doesn't
-// yet support a dark theme).
+// validated categorical palette. Axis and text colours come from CSS
+// variables (--chart-*, defined in globals.css) so they follow the theme.
 
 import { useI18n } from "@/components/LanguageProvider";
 
 type Series = { key: string; label: string; color: string; scores: number[] };
 
 const CHROME = {
-  grid: "#e1e0d9",
-  axis: "#c3c2b7",
-  mutedText: "#898781",
-  primaryText: "#0b0b0b",
+  grid: "var(--chart-grid)",
+  axis: "var(--chart-axis)",
+  mutedText: "var(--chart-muted)",
+  primaryText: "var(--chart-primary)",
 };
 
 const WIDTH = 600;
@@ -68,16 +68,16 @@ export default function ScoreTrendChart({
               x2={WIDTH - PAD.right}
               y1={y(g)}
               y2={y(g)}
-              stroke={g === 60 ? CHROME.axis : CHROME.grid}
+              style={{ stroke: g === 60 ? CHROME.axis : CHROME.grid }}
               strokeWidth={1}
               strokeDasharray={g === 60 ? "4 3" : undefined}
             />
-            <text x={PAD.left - 6} y={y(g)} textAnchor="end" dominantBaseline="middle" fontSize={10} fill={CHROME.mutedText}>
+            <text x={PAD.left - 6} y={y(g)} textAnchor="end" dominantBaseline="middle" fontSize={10} style={{ fill: CHROME.mutedText }}>
               {g}
             </text>
           </g>
         ))}
-        <text x={WIDTH - PAD.right} y={y(60) - 4} textAnchor="end" fontSize={9} fill={CHROME.mutedText}>
+        <text x={WIDTH - PAD.right} y={y(60) - 4} textAnchor="end" fontSize={9} style={{ fill: CHROME.mutedText }}>
           {t.scoreTrendChart.passThreshold}
         </text>
 
@@ -94,7 +94,7 @@ export default function ScoreTrendChart({
                 x={x(lastIndex) + 4}
                 y={y(s.scores[lastIndex])}
                 fontSize={10}
-                fill={CHROME.primaryText}
+                style={{ fill: CHROME.primaryText }}
                 dominantBaseline="middle"
               >
                 {Math.round(s.scores[lastIndex])}%

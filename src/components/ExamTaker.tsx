@@ -61,8 +61,10 @@ function partTips(t: Dictionary): Record<string, string> {
 // Nth marker in the text is questions[N]), which is how the rest of the
 // app already numbers these items (by array order, not the model's own
 // count).
-const GAP_MARKER = /(\(\d+\))/g;
-const IS_GAP_MARKER = /^\(\d+\)$/;
+// Gaps are written "(21)"; "[21]" is accepted too, for exams generated while
+// the model was copying a bracketed format.
+const GAP_MARKER = /(\(\d+\)|\[\d+\])/g;
+const IS_GAP_MARKER = /^(\(\d+\)|\[\d+\])$/;
 
 function renderGapFillPassage(
   text: string,

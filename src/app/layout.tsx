@@ -9,6 +9,8 @@ import MobileNav from "@/components/MobileNav";
 import ActivityHeartbeat from "@/components/ActivityHeartbeat";
 import LanguageProvider from "@/components/LanguageProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -42,7 +44,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-white text-neutral-900">
         <LanguageProvider initialLocale={locale}>
           {user && <ActivityHeartbeat />}
@@ -65,6 +71,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 </nav>
               )}
               <div className="ml-auto flex items-center gap-3 text-sm">
+                <ThemeSwitcher className="hidden rounded-md border border-blue-200 bg-white px-2 py-1 text-xs text-blue-900 sm:block" />
                 <LanguageSwitcher className="hidden rounded-md border border-blue-200 bg-white px-2 py-1 text-xs text-blue-900 sm:block" />
                 {user && (
                   <>

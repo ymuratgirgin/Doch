@@ -19,6 +19,7 @@ import {
   getTeilMaxPoints,
   groupsForMode,
   neutralizeSpeakerNames,
+  normalizeGapMarkers,
 } from "@/lib/examSchema";
 
 // Generation runs several Claude calls in parallel, and a full response can
@@ -349,7 +350,10 @@ export async function POST(req: NextRequest) {
                   teilLabel: part.teilLabel,
                   order: partIndex,
                   instructions: part.instructions,
-                  passageText: part.passageText,
+                  passageText:
+                    part.type === "GRAMMAR" && part.passageText
+                      ? normalizeGapMarkers(part.passageText)
+                      : part.passageText,
                   questions: {
                     create: part.questions.map((q, qIndex) => ({
                       order: qIndex,
