@@ -27,6 +27,10 @@ export type Dictionary = {
     label: string;
     names: Record<Locale, string>;
   };
+  themeSwitcher: {
+    label: string;
+    names: { light: string; dark: string; system: string };
+  };
   nav: {
     mockExam: string;
     flashcards: string;
@@ -237,6 +241,10 @@ const en: Dictionary = {
   languageSwitcher: {
     label: "Language",
     names: { en: "English", tr: "Türkçe", de: "Deutsch" },
+  },
+  themeSwitcher: {
+    label: "Theme",
+    names: { light: "Light", dark: "Dark", system: "System" },
   },
   nav: {
     mockExam: "Mock Exam",
@@ -479,6 +487,10 @@ const tr: Dictionary = {
     label: "Dil",
     names: { en: "English", tr: "Türkçe", de: "Deutsch" },
   },
+  themeSwitcher: {
+    label: "Tema",
+    names: { light: "Açık", dark: "Koyu", system: "Sistem" },
+  },
   nav: {
     mockExam: "Deneme Sınavı",
     flashcards: "Kelime Kartları",
@@ -718,6 +730,10 @@ const de: Dictionary = {
   languageSwitcher: {
     label: "Sprache",
     names: { en: "English", tr: "Türkçe", de: "Deutsch" },
+  },
+  themeSwitcher: {
+    label: "Design",
+    names: { light: "Hell", dark: "Dunkel", system: "System" },
   },
   nav: {
     mockExam: "Übungstest",

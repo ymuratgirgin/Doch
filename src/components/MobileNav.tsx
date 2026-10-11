@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import LogoutButton from "@/components/LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { useI18n } from "@/components/LanguageProvider";
 
 export default function MobileNav({
@@ -63,6 +64,7 @@ export default function MobileNav({
           </nav>
           <div className="mt-2 flex items-center justify-between border-t border-blue-100 px-2 pt-3 text-sm">
             <LanguageSwitcher />
+            <ThemeSwitcher />
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-blue-100 px-2 pt-3 text-sm">
             <span className="text-blue-700">{userName}</span>
