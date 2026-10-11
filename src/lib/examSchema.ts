@@ -129,6 +129,13 @@ export function neutralizeSpeakerNames(
   return result;
 }
 
+// The Sprachbausteine passage marks each gap as "(21)"; the exam page turns
+// those markers into dropdowns. Rewrite any "[21]" the model produced
+// instead, so the page never shows bare brackets.
+export function normalizeGapMarkers(text: string): string {
+  return text.replace(/\[(\d{1,3})\]/g, "($1)");
+}
+
 // Solo-adapted Mündlicher Ausdruck (spec §3.8 is a paired oral exam; we
 // adapt each Teil to a monologue). Official per-criterion caps are
 // Ausdrucksfähigkeit/Aufgabenbewältigung/Formale Richtigkeit/Aussprache at

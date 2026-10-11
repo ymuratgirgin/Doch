@@ -6,7 +6,7 @@
 // empty string and generation behaves exactly as it did without exemplars.
 
 import { prisma } from "@/lib/prisma";
-import { WRITING_TEIL_LABEL } from "@/lib/examSchema";
+import { WRITING_TEIL_LABEL, normalizeGapMarkers } from "@/lib/examSchema";
 import { pickRandom } from "@/lib/random";
 
 // Exemplars per Teil in one generation call. One keeps the prompt small
@@ -74,14 +74,14 @@ export function renderReferenceSection(
       out.push("Anzeigen:", ...entries(c.ads).map(([l, t]) => `${l}) ${t}`));
       break;
     case "sprachbausteine-1": {
-      out.push(String(c.text), "Auswahl:");
+      out.push(normalizeGapMarkers(String(c.text)), "Auswahl:");
       for (const [n, opts] of Object.entries((c.options ?? {}) as Record<string, Obj>)) {
         out.push(`${n}: ${entries(opts).map(([l, t]) => `${l}) ${t}`).join("  ")}`);
       }
       break;
     }
     case "sprachbausteine-2":
-      out.push(String(c.text), `Wörter: ${entries(c.words).map(([l, w]) => `${l}) ${w}`).join("  ")}`);
+      out.push(normalizeGapMarkers(String(c.text)), `Wörter: ${entries(c.words).map(([l, w]) => `${l}) ${w}`).join("  ")}`);
       break;
     case "hoeren-1":
     case "hoeren-2":
