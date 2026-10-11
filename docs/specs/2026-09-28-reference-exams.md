@@ -1,6 +1,6 @@
 # Reference exams and vocabulary as private generation sources
 
-Status: in progress (built and verified locally; production rollout pending)
+Status: done
 Date: 2026-09-28
 
 ## Goal
@@ -108,10 +108,10 @@ Verified: `npm run lint`, `npx tsc --noEmit`; migrations apply on a fresh databa
 
 Not verified: a live generation call (no `ANTHROPIC_API_KEY` in the build environment), so the exemplar and originality log lines and the two-card speaking screen still need one look on a real run.
 
-Rollout still to do (the spec is set to `done` after these):
-1. Sync the working branch to `main` (Vercel runs the new migration on deploy).
-2. Run `npm run import:reference` once against the production `DATABASE_URL` from the machine that has `reference/`.
-3. Generate one exam and one speaking practice and check the Vercel logs for `[exam-generate] exemplars=` and `originality` lines.
+Rollout (completed):
+1. Synced to `main` as `7b33d18`; the Vercel deploy created the `ReferenceSection` table.
+2. Ran `npm run import:reference` against production: 30 exam sections and 699 words created, a second run changed nothing.
+3. Live check by the owner: speaking Teil 2 shows both opposing cards on a new topic, and the new words (for example "Abflug") appear in the vocab page. The `[exam-generate]` log lines (`exemplars=`, `originality`) were not inspected; look at them on the next generation.
 
 Recommended follow-ups:
 - Owner reviews `data/exam-difficulty-notes.md` and the Turkish translations; then add the notes to the generation prompt and implement the "too easy" check.
