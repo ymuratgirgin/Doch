@@ -4,6 +4,13 @@ Newest first. One entry per release, meaning one sync to `main` (Vercel deploys 
 
 To add an entry: before syncing to `main`, put a new section at the top with the date, a short title and the commit hash once it is known, and list what changed for learners and for the owner. Mention anything the owner has to do after the deploy.
 
+## 2026-10-11 — difficulty notes now guide generation
+**Changed**
+- Each generation call now includes our difficulty notes for the parts being generated (text lengths, how to build wrong options, answer-key balance, gap variety). New exams should come out closer to the real exam's difficulty. The notes add roughly 200 to 750 tokens per call; the cached specification is unchanged.
+
+**Owner action**
+- None. To adjust difficulty, edit `data/exam-difficulty-notes.md` and sync to `main`.
+
 ## 2026-10-11 — release notes and spec close-out
 Spec: `docs/specs/2026-09-28-reference-exams.md` (now `done`).
 

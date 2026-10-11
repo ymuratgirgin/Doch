@@ -14,9 +14,9 @@ telc B1 German exam prep app. Generates mock exams from the telc blueprint via C
 - `prisma/schema.prisma` — data model
 - `data/telc-b1-mock-generator-spec.md` — telc B1 blueprint the generator follows verbatim
 - `data/B1_cleaned.json` — B1 vocabulary seed
-- `data/exam-difficulty-notes.md` — our own difficulty calibration per task type (reviewed by the owner; not yet used by the generator)
+- `data/exam-difficulty-notes.md` — our own difficulty calibration per task type; the sections for the Teile being generated are added to the generation task block by `src/lib/difficultyNotes.ts`
 - `prompts/` — system prompts for generation and grading
-- `src/lib/` — business logic (weakAreas, passEstimate, flashcards, streak, recommendation, tts, referenceExemplars, originality)
+- `src/lib/` — business logic (weakAreas, passEstimate, flashcards, streak, recommendation, tts, referenceExemplars, difficultyNotes, originality)
 - `scripts/` — one-off scripts; `scripts/import-reference.ts` loads the private reference exams and extra vocabulary from `reference/` into Postgres
 - `src/app/` — pages and API routes (home page doubles as landing/dashboard/login, plus exams, vocab, flashcards, mistakes, progress)
 - `CHANGELOG.md` — release notes, one entry per sync to `main`, newest first

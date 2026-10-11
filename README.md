@@ -124,7 +124,7 @@ broken state either way, just a quality difference.
   regenerated once. With an empty store generation works exactly as before. The
   same import adds the Einfach gut B1 word lists to the vocabulary bank (source
   `einfach-gut-b1`), and the vocabulary hint sent to the model is drawn from the
-  whole bank. Our own difficulty calibration is in `data/exam-difficulty-notes.md`.
+  whole bank. Our own difficulty calibration is in `data/exam-difficulty-notes.md`; the notes for the Teile being generated are added to every generation call (`src/lib/difficultyNotes.ts`).
 - **Grading** (`src/app/api/attempts/[id]/submit`): objective questions
   (reading/listening/grammar) are auto-graded and scored by the spec's
   point table; every wrong answer gets a cached grammar/topic explanation
